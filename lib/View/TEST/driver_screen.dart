@@ -35,7 +35,7 @@ class _DriverScreenState extends State<DriverScreen> {
   }
 
   void startSimulatedMovement() {
-    locationTimer = Timer.periodic(Duration(seconds: 3), (_) async {
+    locationTimer = Timer.periodic(Duration(seconds: 5), (_) async {
       if (currentIndex >= routePoints.length) currentIndex = 0;
 
       final fakePosition = routePoints[currentIndex];
