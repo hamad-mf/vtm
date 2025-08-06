@@ -1,50 +1,32 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:vtm/View/TEST/driver_screen.dart';
-import 'package:vtm/View/TEST/parent_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import 'package:vtm/Controllers/Common%20Controllers/login_controller.dart';
 
+import 'package:vtm/View/Common%20Screens/splash_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main(List<String> args) async{
+    WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   runApp(MyApp());
+
 }
 
 class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Transport Tracker',
-      theme: ThemeData(primarySwatch: Colors.deepPurple),
-      home: HomePage(),
-    );
-  }
-}
+  const MyApp({super.key});
 
-class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Transport Test App')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              child: Text('Driver Page'),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => DriverScreen()),
-              ),
-            ),
-            ElevatedButton(
-              child: Text('Parent Page'),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => ParentScreen()),
-              ),
-            ),
-          ],
+    return MultiProvider(
+      providers: [
+          ChangeNotifierProvider(create: (context) => LoginController()),
+      ],
+      child: ScreenUtilInit(
+        designSize: Size(393, 852),
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: SplashScreen(),
         ),
       ),
     );
