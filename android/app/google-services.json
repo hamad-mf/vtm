@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "535601089488",
+    "project_id": "vtm-8559d",
+    "storage_bucket": "vtm-8559d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:535601089488:android:d3ffc7cf73c117f58947d5",
+        "android_client_info": {
+          "package_name": "com.example.vtm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfs1bEA1r5yOLDAAjboyD9JlcTxIGxsjQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
