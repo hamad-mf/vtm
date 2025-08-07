@@ -14,6 +14,7 @@ class ProfileSelectionScreen extends StatefulWidget {
 
 class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
     with TickerProviderStateMixin {
+  late ScrollController _scrollController;
   bool isuserSelected = false;
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -23,15 +24,16 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
   // Color palette based on 0xff7e57c2
   static const Color primaryPurple = Color(0xff7e57c2); //ok
   static const Color lightPurple = Color(0xff9c7fd6); // ok
-  static const Color darkPurple = Color(0xff5a3f8a); 
+  static const Color darkPurple = Color(0xff5a3f8a);
   static const Color veryDarkPurple = Color(0xff4a2f73);
-  static const Color accentPurple = Color(0xff  );
+  static const Color accentPurple = Color(0xff);
   static const Color backgroundPurple = Color(0xfff3f0ff);
   static const Color textPurple = Color(0xff271F33);
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -58,6 +60,7 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
 
   @override
   void dispose() {
+    _scrollController = ScrollController();
     _fadeController.dispose();
     _slideController.dispose();
     super.dispose();
@@ -82,6 +85,7 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
               position: _slideAnimation,
               child: Center(
                 child: SingleChildScrollView(
+                  controller: _scrollController,
                   padding: EdgeInsets.symmetric(horizontal: 20.w),
                   child: Column(
                     children: [
@@ -342,8 +346,8 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
           boxShadow: [
             BoxShadow(
               color: gradientColors.first.withOpacity(0.4),
-              blurRadius: isSelected ? 20 : 15,
-              offset: const Offset(0, 8),
+              blurRadius: isSelected ? 5 : 5,
+              offset: const Offset(0, 0),
             ),
           ],
         ),
@@ -447,6 +451,19 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
     log("user selected");
     setState(() {
       isuserSelected = !isuserSelected;
+    });
+
+    // Delay scrolling until after the AnimatedSize expansion is rendered
+    if (!isuserSelected) return;
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 }

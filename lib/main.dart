@@ -2,6 +2,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/driver_controller.dart';
+import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/route_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Common%20Controllers/login_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/student_controller.dart';
 
@@ -22,6 +24,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (context) => LoginController()),
         ChangeNotifierProvider(create: (context) => StudentController()),
+        ChangeNotifierProvider(create: (context) => DriverController()),
+        ChangeNotifierProvider(create: (context) => RouteController()),
       ],
       child: ScreenUtilInit(
         designSize: Size(393, 852),

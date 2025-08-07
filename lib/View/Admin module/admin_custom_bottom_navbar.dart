@@ -9,7 +9,8 @@ import 'package:vignan_transportation_management/View/Admin%20module/admin_setti
 import 'package:vignan_transportation_management/View/Admin%20module/admin_students_screen.dart';
 
 class AdminCustomBottomNavbarScreen extends StatefulWidget {
-  const AdminCustomBottomNavbarScreen({super.key});
+  final int initialIndex;
+  const AdminCustomBottomNavbarScreen({ this.initialIndex =0, super.key});
 
   @override
   State<AdminCustomBottomNavbarScreen> createState() =>
@@ -19,6 +20,16 @@ class AdminCustomBottomNavbarScreen extends StatefulWidget {
 class _AdminCustomBottomNavbarScreenState
     extends State<AdminCustomBottomNavbarScreen>
     with TickerProviderStateMixin {
+ @override
+  void initState() {
+    super.initState();
+
+    _currentIndex = widget.initialIndex;
+
+   
+  }
+
+      
   int _currentIndex = 0;
   // late AnimationController _animationController;
   // late AnimationController _rippleController;
