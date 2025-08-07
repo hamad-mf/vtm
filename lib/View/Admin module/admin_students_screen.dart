@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AdminStudentsScreen extends StatefulWidget {
   const AdminStudentsScreen({super.key});
@@ -11,9 +12,10 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Text("admin students screen"),
+      appBar: AppBar(
+        title: Text("Manage Students", style: TextStyle(fontSize: 19.sp)),
       ),
+      body: Center(child: Text("admin students screen")),
     );
   }
 }

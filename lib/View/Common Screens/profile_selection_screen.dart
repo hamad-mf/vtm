@@ -21,9 +21,9 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
   late Animation<Offset> _slideAnimation;
 
   // Color palette based on 0xff7e57c2
-  static const Color primaryPurple = Color(0xff7e57c2);
-  static const Color lightPurple = Color(0xff9c7fd6);
-  static const Color darkPurple = Color(0xff5a3f8a);
+  static const Color primaryPurple = Color(0xff7e57c2); //ok
+  static const Color lightPurple = Color(0xff9c7fd6); // ok
+  static const Color darkPurple = Color(0xff5a3f8a); 
   static const Color veryDarkPurple = Color(0xff4a2f73);
   static const Color accentPurple = Color(0xffb39ddb);
   static const Color backgroundPurple = Color(0xfff3f0ff);
