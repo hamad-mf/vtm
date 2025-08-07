@@ -358,7 +358,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20.r),
                   color: Color(0xffb39ddb),
-                  boxShadow: [
+                  boxShadow: [  
                     BoxShadow(
                       color: Color(0xffb39ddb).withOpacity(0.3),
                       blurRadius: 15,

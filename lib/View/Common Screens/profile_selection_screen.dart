@@ -3,7 +3,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:vtm/View/Common%20Screens/login_screen.dart';
+import 'package:vignan_transportation_management/View/Common%20Screens/login_screen.dart';
 
 class ProfileSelectionScreen extends StatefulWidget {
   const ProfileSelectionScreen({super.key});
@@ -25,7 +25,7 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
   static const Color lightPurple = Color(0xff9c7fd6); // ok
   static const Color darkPurple = Color(0xff5a3f8a); 
   static const Color veryDarkPurple = Color(0xff4a2f73);
-  static const Color accentPurple = Color(0xffb39ddb);
+  static const Color accentPurple = Color(0xff  );
   static const Color backgroundPurple = Color(0xfff3f0ff);
   static const Color textPurple = Color(0xff271F33);
 

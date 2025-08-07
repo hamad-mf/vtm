@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:vtm/Controllers/Common%20Controllers/login_controller.dart';
+import 'package:vignan_transportation_management/Controllers/Common%20Controllers/login_controller.dart';
 
 class LoginScreen extends StatefulWidget {
   String role;

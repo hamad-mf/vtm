@@ -2,15 +2,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:vtm/Controllers/Common%20Controllers/login_controller.dart';
+import 'package:vignan_transportation_management/Controllers/Common%20Controllers/login_controller.dart';
+import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/student_controller.dart';
 
-import 'package:vtm/View/Common%20Screens/splash_screen.dart';
+import 'package:vignan_transportation_management/View/Common%20Screens/splash_screen.dart';
 
-void main(List<String> args) async{
-    WidgetsFlutterBinding.ensureInitialized();
+void main(List<String> args) async {
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   runApp(MyApp());
-
 }
 
 class MyApp extends StatelessWidget {
@@ -20,7 +20,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-          ChangeNotifierProvider(create: (context) => LoginController()),
+        ChangeNotifierProvider(create: (context) => LoginController()),
+        ChangeNotifierProvider(create: (context) => StudentController()),
       ],
       child: ScreenUtilInit(
         designSize: Size(393, 852),

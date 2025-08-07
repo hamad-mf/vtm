@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vtm/View/Admin%20module/admin_dashboard_screen.dart';
-import 'package:vtm/View/Admin%20module/admin_drivers_screen.dart';
+import 'package:vignan_transportation_management/View/Admin%20module/admin_dashboard_screen.dart';
+import 'package:vignan_transportation_management/View/Admin%20module/admin_drivers_screen.dart';
 
-import 'package:vtm/View/Admin%20module/admin_notifications_screen.dart';
-import 'package:vtm/View/Admin%20module/admin_settings_screen.dart';
+import 'package:vignan_transportation_management/View/Admin%20module/admin_notifications_screen.dart';
+import 'package:vignan_transportation_management/View/Admin%20module/admin_settings_screen.dart';
 
-import 'package:vtm/View/Admin%20module/admin_students_screen.dart';
+import 'package:vignan_transportation_management/View/Admin%20module/admin_students_screen.dart';
 
 class AdminCustomBottomNavbarScreen extends StatefulWidget {
   const AdminCustomBottomNavbarScreen({super.key});

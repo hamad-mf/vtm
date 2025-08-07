@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vtm/View/Admin%20module/admin_custom_bottom_navbar.dart';
-import 'package:vtm/View/Admin%20module/admin_home_screen.dart';
-import 'package:vtm/View/Common%20Screens/profile_selection_screen.dart';
-import 'package:vtm/View/Driver%20module/driver_home_screen.dart';
-import 'package:vtm/View/Parent%20module/parent_home_screen.dart';
-import 'package:vtm/View/Staff%20Module/staff_home_screen.dart';
-import 'package:vtm/View/Student%20module/student_home_screen.dart';
+import 'package:vignan_transportation_management/View/Admin%20module/admin_custom_bottom_navbar.dart';
+
+import 'package:vignan_transportation_management/View/Common%20Screens/profile_selection_screen.dart';
+import 'package:vignan_transportation_management/View/Driver%20module/driver_home_screen.dart';
+import 'package:vignan_transportation_management/View/Parent%20module/parent_home_screen.dart';
+import 'package:vignan_transportation_management/View/Staff%20Module/staff_home_screen.dart';
+import 'package:vignan_transportation_management/View/Student%20module/student_home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus();
+    // _checkLoginStatus();
   }
 
   void _checkLoginStatus() async {
@@ -55,9 +55,9 @@ class _SplashScreenState extends State<SplashScreen> {
     Timer(Duration(seconds: 3), () {
       if (isAdminLoggedIn) {
         // Navigate to
-        Navigator.of(
-          context,
-        ).pushReplacement(MaterialPageRoute(builder: (_) => AdminCustomBottomNavbarScreen()));
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => AdminCustomBottomNavbarScreen()),
+        );
       } else if (isStudentLoggedIn) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => StudentHomeScreen()),
@@ -91,9 +91,7 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Center(
-            child: Image.asset(scale: 3.w, 'assets/images/vtm_white_logo.png'),
-          ),
+          Center(child: Image.asset(scale: 3.w, 'assets/images/vtm_logo.png')),
           SizedBox(height: 20.h),
           Column(
             children: [
