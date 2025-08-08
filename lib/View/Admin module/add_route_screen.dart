@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -539,12 +538,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
               ),
               Spacer(),
               // Debug button - remove this in production
-              IconButton(
-                icon: Icon(Icons.bug_report, size: 16.w),
-                onPressed: () {
-                  driverProvider.debugDriversStatus();
-                },
-              ),
+           
             ],
           ),
           SizedBox(height: 16.h),

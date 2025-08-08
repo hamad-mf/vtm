@@ -7,21 +7,10 @@ class RouteController with ChangeNotifier {
   bool isLoading = false;
   String? error;
 
-  // Get all routes
   Stream<QuerySnapshot<Map<String, dynamic>>> getAllRoutes() {
     return _firestore.collection('routes').orderBy('routeName').snapshots();
   }
 
-  // Get routes without assigned drivers
-  Stream<QuerySnapshot<Map<String, dynamic>>> getUnassignedRoutes() {
-    return _firestore
-        .collection('routes')
-        .where('assignedDriverId', isEqualTo: null)
-        .orderBy('routeName')
-        .snapshots();
-  }
-
-  // Add new route
   Future<void> addRoute({
     required String routeName,
     required String startPointName,
@@ -37,12 +26,11 @@ class RouteController with ChangeNotifier {
     String? assignedDriverName,
   }) async {
     isLoading = true;
-    error = null;
     notifyListeners();
-
     try {
-      // Create route document
-      DocumentReference routeRef = await _firestore.collection('routes').add({
+      final routeRef = _firestore.collection('routes').doc();
+
+      final routeData = {
         'routeName': routeName,
         'startPoint': {
           'name': startPointName,
@@ -59,19 +47,31 @@ class RouteController with ChangeNotifier {
         'frequency': frequency,
         'assignedDriverId': assignedDriverId,
         'assignedDriverName': assignedDriverName,
+        'assignedVehicleId': null,
         'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      };
 
-      // If driver is assigned, update driver document
+      await routeRef.set(routeData);
+
       if (assignedDriverId != null) {
+        final driverDoc =
+            await _firestore.collection('drivers').doc(assignedDriverId).get();
+        final busId = driverDoc['assignedBusId'];
+
         await _firestore.collection('drivers').doc(assignedDriverId).update({
           'isAssigned': true,
-          'assignedRoute': routeRef.id,
+          'assignedRoute': routeRef.id
         });
-      }
 
-      error = null;
+        if (busId != null) {
+          await _firestore.collection('vehicles').doc(busId).update({
+            'assignedRouteId': routeRef.id
+          });
+
+          await routeRef.update({'assignedVehicleId': busId});
+        }
+      }
     } catch (e) {
       error = 'Failed to add route: $e';
     } finally {
@@ -80,77 +80,40 @@ class RouteController with ChangeNotifier {
     }
   }
 
-  // Update route
-  Future<void> updateRoute(String routeId, Map<String, dynamic> updatedData) async {
+  Future<void> assignDriverToRoute(
+      String routeId, String driverId, String driverName) async {
     isLoading = true;
-    error = null;
     notifyListeners();
-
     try {
-      await _firestore.collection('routes').doc(routeId).update(updatedData);
-      error = null;
-    } catch (e) {
-      error = 'Failed to update route: $e';
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
-  }
+      final driverDoc =
+          await _firestore.collection('drivers').doc(driverId).get();
+      final busId = driverDoc['assignedBusId'];
 
-  // Delete route
-  Future<void> deleteRoute(String routeId) async {
-    isLoading = true;
-    error = null;
-    notifyListeners();
-
-    try {
-      // Get route document to check assigned driver
-      DocumentSnapshot routeDoc = await _firestore.collection('routes').doc(routeId).get();
-      
-      if (routeDoc.exists) {
-        Map<String, dynamic> routeData = routeDoc.data() as Map<String, dynamic>;
-        
-        // If driver is assigned, unassign them
-        if (routeData['assignedDriverId'] != null) {
-          await _firestore.collection('drivers').doc(routeData['assignedDriverId']).update({
-            'isAssigned': false,
-            'assignedRoute': null,
-          });
-        }
+      if (busId == null) {
+        throw Exception('Driver has no assigned vehicle');
       }
 
-      // Delete route document
-      await _firestore.collection('routes').doc(routeId).delete();
-      
-      error = null;
-    } catch (e) {
-      error = 'Failed to delete route: $e';
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
-  }
+      final busDoc =
+          await _firestore.collection('vehicles').doc(busId).get();
+      if (busDoc['assignedRouteId'] != null) {
+        throw Exception('Vehicle already assigned to another route');
+      }
 
-  // Assign driver to route
-  Future<void> assignDriverToRoute(String routeId, String driverId, String driverName) async {
-    isLoading = true;
-    error = null;
-    notifyListeners();
-
-    try {
-      // Update route document
-      await _firestore.collection('routes').doc(routeId).update({
+      final batch = _firestore.batch();
+      batch.update(_firestore.collection('routes').doc(routeId), {
         'assignedDriverId': driverId,
         'assignedDriverName': driverName,
+        'assignedVehicleId': busId
       });
-
-      // Update driver document
-      await _firestore.collection('drivers').doc(driverId).update({
+      batch.update(_firestore.collection('drivers').doc(driverId), {
         'isAssigned': true,
-        'assignedRoute': routeId,
+        'assignedRoute': routeId
+      });
+      batch.update(_firestore.collection('vehicles').doc(busId), {
+        'assignedRouteId': routeId
       });
 
-      error = null;
+      await batch.commit();
     } catch (e) {
       error = 'Failed to assign driver to route: $e';
     } finally {
@@ -159,75 +122,120 @@ class RouteController with ChangeNotifier {
     }
   }
 
-  // Unassign driver from route
   Future<void> unassignDriverFromRoute(String routeId, String driverId) async {
     isLoading = true;
-    error = null;
     notifyListeners();
-
     try {
-      // Update route document
-      await _firestore.collection('routes').doc(routeId).update({
+      final driverDoc =
+          await _firestore.collection('drivers').doc(driverId).get();
+      final busId = driverDoc['assignedBusId'];
+
+      final batch = _firestore.batch();
+      batch.update(_firestore.collection('routes').doc(routeId), {
         'assignedDriverId': null,
         'assignedDriverName': null,
+        'assignedVehicleId': null
       });
-
-      // Update driver document
-      await _firestore.collection('drivers').doc(driverId).update({
+      batch.update(_firestore.collection('drivers').doc(driverId), {
         'isAssigned': false,
-        'assignedRoute': null,
+        'assignedRoute': null
       });
+      if (busId != null) {
+        batch.update(_firestore.collection('vehicles').doc(busId), {
+          'assignedRouteId': null
+        });
+      }
 
-      error = null;
+      await batch.commit();
     } catch (e) {
-      error = 'Failed to unassign driver from route: $e';
+      error = 'Failed to unassign driver: $e';
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
 
-  // Toggle route active status
+  Future<void> deleteRoute(String routeId) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final routeDoc =
+          await _firestore.collection('routes').doc(routeId).get();
+      if (routeDoc.exists) {
+        final data = routeDoc.data() as Map<String, dynamic>;
+        final driverId = data['assignedDriverId'];
+        final vehicleId = data['assignedVehicleId'];
+
+        if (driverId != null) {
+          await _firestore.collection('drivers').doc(driverId).update({
+            'isAssigned': false,
+            'assignedRoute': null
+          });
+        }
+        if (vehicleId != null) {
+          await _firestore.collection('vehicles').doc(vehicleId).update({
+            'assignedRouteId': null
+          });
+        }
+      }
+      await _firestore.collection('routes').doc(routeId).delete();
+    } catch (e) {
+      error = 'Failed to delete route: $e';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Toggle route active status
+  /// On deactivation, unassign driver & vehicle to free them up
   Future<void> toggleRouteStatus(String routeId, bool isActive) async {
     isLoading = true;
-    error = null;
     notifyListeners();
-
     try {
+      final routeDoc =
+          await _firestore.collection('routes').doc(routeId).get();
+      if (!routeDoc.exists) {
+        error = 'Route not found';
+        return;
+      }
+
+      final data = routeDoc.data() as Map<String, dynamic>;
+      final driverId = data['assignedDriverId'];
+      final vehicleId = data['assignedVehicleId'];
+
       await _firestore.collection('routes').doc(routeId).update({
         'isActive': isActive,
       });
-      error = null;
+
+      if (!isActive) {
+        // On deactivation, free driver and vehicle
+        final batch = _firestore.batch();
+
+        if (driverId != null) {
+          batch.update(_firestore.collection('drivers').doc(driverId), {
+            'isAssigned': false,
+            'assignedRoute': null
+          });
+        }
+        if (vehicleId != null) {
+          batch.update(_firestore.collection('vehicles').doc(vehicleId), {
+            'assignedRouteId': null
+          });
+        }
+        batch.update(_firestore.collection('routes').doc(routeId), {
+          'assignedDriverId': null,
+          'assignedDriverName': null,
+          'assignedVehicleId': null,
+        });
+
+        await batch.commit();
+      }
     } catch (e) {
       error = 'Failed to update route status: $e';
     } finally {
       isLoading = false;
       notifyListeners();
-    }
-  }
-
-  // Get route by ID
-  Future<DocumentSnapshot<Map<String, dynamic>>> getRouteById(String routeId) async {
-    return await _firestore.collection('routes').doc(routeId).get();
-  }
-
-  // Get driver details by route
-  Future<DocumentSnapshot<Map<String, dynamic>>?> getDriverByRoute(String routeId) async {
-    try {
-      DocumentSnapshot routeDoc = await _firestore.collection('routes').doc(routeId).get();
-      
-      if (routeDoc.exists) {
-        Map<String, dynamic> routeData = routeDoc.data() as Map<String, dynamic>;
-        
-        if (routeData['assignedDriverId'] != null) {
-          return await _firestore.collection('drivers').doc(routeData['assignedDriverId']).get();
-        }
-      }
-      
-      return null;
-    } catch (e) {
-      error = 'Failed to get driver details: $e';
-      return null;
     }
   }
 }

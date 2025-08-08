@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/driver_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/route_controller.dart';
 import 'package:vignan_transportation_management/View/Admin%20module/add_route_screen.dart';
 
@@ -11,7 +12,8 @@ class RouteListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<RouteController>(context);
-
+    final driverController = Provider.of<DriverController>(context, listen: false);
+final routeController = Provider.of<RouteController>(context, listen: false);
     return Scaffold(
       appBar: AppBar(
         title: Text("Manage Routes", style: TextStyle(fontSize: 19.sp)),
@@ -209,6 +211,9 @@ class RouteListScreen extends StatelessWidget {
     Map<String, dynamic> data,
     RouteController provider,
   ) {
+
+    final driverController = Provider.of<DriverController>(context, listen: false);
+final routeController = Provider.of<RouteController>(context, listen: false);
     bool isActive = data['isActive'] ?? true;
     bool hasDriver = data['assignedDriverId'] != null;
     String driverName = data['assignedDriverName'] ?? 'Unassigned';
@@ -464,7 +469,9 @@ class RouteListScreen extends StatelessWidget {
                     TextButton(
                       onPressed: () {
                         // Navigate to assign driver screen or show dialog
-                        _showDriverAssignmentDialog(context, routeId, provider);
+                    _showDriverAssignmentDialog(context, routeId, routeController, driverController);
+
+
                       },
                       child: Text(
                         "Assign",
@@ -661,21 +668,102 @@ class RouteListScreen extends StatelessWidget {
     );
   }
 
-  void _showDriverAssignmentDialog(
-    BuildContext context,
-    String routeId,
-    RouteController provider,
-  ) {
-    // This would show a dialog to assign a driver to the route
-    // You can implement this based on your needs
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Driver assignment feature coming soon!"),
-        backgroundColor: Color(0xff7B61A1),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-      ),
-    );
-  }
+void _showDriverAssignmentDialog(
+  BuildContext context,
+  String routeId,
+  RouteController routeController,
+  DriverController driverController,
+) {
+  showDialog(
+    context: context,
+    builder: (_) {
+      String? selectedDriverId;
+      String? selectedDriverName;
+
+      return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return AlertDialog(
+            title: Text('Assign Driver'),
+            content: Container(
+              width: double.maxFinite,
+              child: StreamBuilder<QuerySnapshot>(
+                stream: driverController.getAvailableDrivers(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  }
+                  final drivers = snapshot.data?.docs ?? [];
+                  if (drivers.isEmpty) {
+                    return Text('No available drivers found');
+                  }
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: drivers.length,
+                    itemBuilder: (context, index) {
+                      final driverData =
+                          drivers[index].data() as Map<String, dynamic>;
+                      final driverName = driverData['name'] ?? 'Unnamed';
+                      final driverId = drivers[index].id;
+
+                      return RadioListTile<String>(
+                        title: Text(driverName),
+                        value: driverId,
+                        groupValue: selectedDriverId,
+                        onChanged: (value) {
+                          setState(() {
+                            selectedDriverId = value;
+                            selectedDriverName = driverName;
+                          });
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                child: Text('Cancel'),
+                onPressed: () => Navigator.pop(context),
+              ),
+              ElevatedButton(
+                child: Text('Assign'),
+                onPressed: selectedDriverId == null
+                    ? null
+                    : () async {
+                        try {
+                          await routeController.assignDriverToRoute(
+                            routeId,
+                            selectedDriverId!,
+                            selectedDriverName!,
+                          );
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Driver assigned successfully'),
+                              backgroundColor: Color(0xff4CAF50),
+                            ),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to assign driver: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
 }
+
+
+  }

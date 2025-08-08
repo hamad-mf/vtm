@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/driver_controller.dart';
+import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/vehicle_controller.dart';
 
 class AddDriverScreen extends StatefulWidget {
   const AddDriverScreen({super.key});
@@ -136,12 +138,70 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
 
                 // Bus Assignment Card
                 _buildSectionCard(
-                  "Bus Assignment",
-                  Icons.directions_bus,
-                  [
-                    buildField("Assigned Bus ID", "assignedBusId", Icons.directions_bus_outlined),
-                  ],
+  "Bus Assignment",
+  Icons.directions_bus,
+  [
+    Consumer<VehicleController>(
+      builder: (context, vehicleProvider, child) {
+        return StreamBuilder<QuerySnapshot>(
+          stream: vehicleProvider.getAvailableVehicles(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: CircularProgressIndicator(color: Color(0xff7B61A1)),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Text(
+                "Error loading vehicles",
+                style: TextStyle(color: Colors.red),
+              );
+            }
+
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Text(
+                "No available vehicles found",
+                style: TextStyle(color: Colors.grey.shade600),
+              );
+            }
+
+            final vehicles = snapshot.data!.docs;
+
+            return DropdownButtonFormField<String>(
+              decoration: InputDecoration(
+                prefixIcon: Icon(Icons.directions_bus_outlined, color: Color(0xff7B61A1)),
+                hintText: "Select Available Vehicle",
+                filled: true,
+                fillColor: Color(0xffF8F9FA),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide.none,
                 ),
+              ),
+              items: vehicles.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return DropdownMenuItem<String>(
+                  value: data['busId'],
+                  child: Text(
+                    "${data['busId']} - ${data['vehicleNumber']} (${data['type']})",
+                    style: TextStyle(fontSize: 14.sp),
+                  ),
+                );
+              }).toList(),
+              validator: (value) =>
+                  value == null || value.isEmpty ? "Vehicle is required" : null,
+              onChanged: (value) {
+                _formData['assignedBusId'] = value!;
+              },
+            );
+          },
+        );
+      },
+    ),
+  ],
+),
+
 
                 SizedBox(height: 30.h),
 

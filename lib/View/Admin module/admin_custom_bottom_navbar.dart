@@ -10,7 +10,7 @@ import 'package:vignan_transportation_management/View/Admin%20module/admin_stude
 
 class AdminCustomBottomNavbarScreen extends StatefulWidget {
   final int initialIndex;
-  const AdminCustomBottomNavbarScreen({ this.initialIndex =0, super.key});
+  const AdminCustomBottomNavbarScreen({this.initialIndex = 0, super.key});
 
   @override
   State<AdminCustomBottomNavbarScreen> createState() =>
@@ -20,16 +20,13 @@ class AdminCustomBottomNavbarScreen extends StatefulWidget {
 class _AdminCustomBottomNavbarScreenState
     extends State<AdminCustomBottomNavbarScreen>
     with TickerProviderStateMixin {
- @override
+  @override
   void initState() {
     super.initState();
 
     _currentIndex = widget.initialIndex;
-
-   
   }
 
-      
   int _currentIndex = 0;
   // late AnimationController _animationController;
   // late AnimationController _rippleController;
