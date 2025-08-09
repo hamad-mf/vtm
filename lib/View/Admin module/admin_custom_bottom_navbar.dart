@@ -45,7 +45,7 @@ class _AdminCustomBottomNavbarScreenState
     AdminDashboardScreen(),
     AdminStudentsScreen(),
     AdminDriversScreen(),
-    AdminNotificationsScreen(),
+    AdminNotificationScreen(),
     AdminSettingsScreen(),
   ];
 

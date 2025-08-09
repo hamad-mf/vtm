@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -7,14 +8,23 @@ import 'package:vignan_transportation_management/Controllers/Admin%20Controllers
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/vehicle_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Common%20Controllers/login_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/student_controller.dart';
+import 'package:vignan_transportation_management/View/Admin%20module/notification_service.dart';
 
 import 'package:vignan_transportation_management/View/Common%20Screens/splash_screen.dart';
+import 'package:vignan_transportation_management/firebase_options.dart';
 
-void main(List<String> args) async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseMessaging.instance.requestPermission();
+
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+  notificationService.registerHandlers();
+
   runApp(MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

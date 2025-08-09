@@ -41,6 +41,7 @@ class LoginController with ChangeNotifier {
     required String password,
     required BuildContext context,
     required String passedrole,
+    required String? token,
   }) async {
     isloading = true;
     notifyListeners();
@@ -68,6 +69,13 @@ class LoginController with ChangeNotifier {
             return;
           }
 
+if (token != null) {
+      await FirebaseFirestore.instance.collection('roles').doc(uid).update({
+        'fcmToken': token,
+        'tokenUpdatedAt': FieldValue.serverTimestamp(),
+      });
+      log("Updated FCM token for $uid: $token");
+    }
           // Store login status
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool('is${role}LoggedIn', true);

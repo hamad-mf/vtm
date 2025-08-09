@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -284,10 +285,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                     height: 56.h,
                                     child: ElevatedButton(
                                       onPressed: () async {
+                                        String? token = await FirebaseMessaging.instance.getToken();
                                         if (_formKey.currentState!.validate()) {
                                           context
                                               .read<LoginController>()
                                               .onLogin(
+                                                token: token,
                                                 email: _emailController.text,
                                                 password:
                                                     _passwordController.text,
