@@ -23,50 +23,52 @@ Future<void> updateStudent(String studentId, Map<String, String> updatedData) as
   await _firestore.collection('students').doc(studentId).update(updatedData);
 }
 
-  Future<void> addStudent({
-    required String name,
-    required String email,
-    required String password,
-    required String registrationNumber,
-    required String mobileNumber,
-    required String address,
-    required String assignedRoute,
-    required String paymentStatus,
-  }) async {
-    isLoading = true;
-    error = null;
+Future<void> addStudent({
+  required String name,
+  required String email,
+  required String password,
+  required String registrationNumber,
+  required String mobileNumber,
+  required String address,
+  required String assignedRoute,
+  required String paymentStatus,
+  required String destinationLatitude,    // NEW
+  required String destinationLongitude,   // NEW
+}) async {
+  isLoading = true;
+  error = null;
+  notifyListeners();
+
+  try {
+    UserCredential result = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    String uid = result.user!.uid;
+
+    await _firestore.collection('roles').doc(uid).set({'role': 'student'});
+
+    await _firestore.collection('students').doc(uid).set({
+      'studentId':uid,
+      'name': name,
+      'email': email,
+      'registrationNumber': registrationNumber,
+      'mobileNumber': mobileNumber,
+      'address': address,
+      'assignedRoute': assignedRoute,
+      'paymentStatus': paymentStatus,
+      'destinationLatitude': double.tryParse(destinationLatitude) ?? 0.0,
+      'destinationLongitude': double.tryParse(destinationLongitude) ?? 0.0,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  } on FirebaseAuthException catch (e) {
+    error = e.message;
+  } catch (e) {
+    error = 'Something went wrong: $e';
+  } finally {
+    isLoading = false;
     notifyListeners();
-
-    try {
-      // Create user in Firebase Auth
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      String uid = result.user!.uid;
-
-      // Add role to roles collection
-      await _firestore.collection('roles').doc(uid).set({'role': 'student'});
-
-      // Add student details
-      await _firestore.collection('students').doc(uid).set({
-        'name': name,
-        'email': email,
-        'registrationNumber': registrationNumber,
-        'mobileNumber': mobileNumber,
-        'address': address,
-        'assignedRoute': assignedRoute,
-        'paymentStatus': paymentStatus,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    } on FirebaseAuthException catch (e) {
-      error = e.message;
-    } catch (e) {
-      error = 'Something went wrong: $e';
-    } finally {
-      isLoading = false;
-      notifyListeners();
-    }
   }
+}
+
 }

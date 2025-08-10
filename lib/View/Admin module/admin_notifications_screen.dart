@@ -75,7 +75,10 @@ class _AdminNotificationScreenState extends State<AdminNotificationScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Send Notifications"),
+        title: const Text(
+          "Send Notifications",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: themeColor,
       ),
       backgroundColor: const Color(0xFFF5F5F5),
@@ -149,6 +152,7 @@ class _AdminNotificationScreenState extends State<AdminNotificationScreen> {
                   height: 48,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
                       backgroundColor: themeColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),

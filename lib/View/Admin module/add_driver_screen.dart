@@ -14,7 +14,7 @@ class AddDriverScreen extends StatefulWidget {
 
 class _AddDriverScreenState extends State<AddDriverScreen> {
   final _formKey = GlobalKey<FormState>();
-  final Map<String, String> _formData = {};
+  final Map<String, dynamic> _formData = {};
   DateTime? _licenseExpiry;
 
   @override
@@ -98,21 +98,32 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
                 ),
 
                 // Basic Information Card
-                _buildSectionCard(
-                  "Basic Information",
-                  Icons.person,
-                  [
-                    buildField("Driver Name", "name", Icons.person_outline),
-                    SizedBox(height: 16.h),
-                    buildField("Email Address", "email", Icons.email_outlined),
-                    SizedBox(height: 16.h),
-                    buildField("Password", "password", Icons.lock_outline, obscure: true),
-                    SizedBox(height: 16.h),
-                    buildField("Employee ID", "employeeId", Icons.badge_outlined),
-                    SizedBox(height: 16.h),
-                    buildField("Contact Number", "contactNumber", Icons.phone_outlined),
-                  ],
-                ),
+                _buildSectionCard("Basic Information", Icons.person, [
+                  buildField("Driver Name", "name", Icons.person_outline),
+                  SizedBox(height: 16.h),
+                  buildField("Email Address", "email", Icons.email_outlined),
+                  SizedBox(height: 16.h),
+                  buildField(
+                    "Password",
+                    "password",
+                    Icons.lock_outline,
+                    obscure: true,
+                  ),
+                  SizedBox(height: 16.h),
+                  buildField("Employee ID", "employeeId", Icons.badge_outlined),
+                  SizedBox(height: 16.h),
+                  buildField(
+                    "Contact Number",
+                    "contactNumber",
+                    Icons.phone_outlined,
+                  ),
+                  SizedBox(height: 16.h),
+                  buildField(
+                    "6 digit pin for attendence marking",
+                    "pinNumber",
+                    Icons.security_outlined,
+                  ),
+                ]),
 
                 SizedBox(height: 20.h),
 
@@ -121,7 +132,11 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
                   "License Information",
                   Icons.card_membership,
                   [
-                    buildField("License Number", "licenseNumber", Icons.credit_card_outlined),
+                    buildField(
+                      "License Number",
+                      "licenseNumber",
+                      Icons.credit_card_outlined,
+                    ),
                     SizedBox(height: 16.h),
                     buildDropdownField(
                       "License Type",
@@ -130,78 +145,88 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
                       ['LMV', 'HMV', 'MCWG', 'MCWOG'],
                     ),
                     SizedBox(height: 16.h),
-                    _buildDateField("License Expiry Date", Icons.calendar_today_outlined),
+                    _buildDateField(
+                      "License Expiry Date",
+                      Icons.calendar_today_outlined,
+                    ),
                   ],
                 ),
 
                 SizedBox(height: 20.h),
 
                 // Bus Assignment Card
-                _buildSectionCard(
-  "Bus Assignment",
-  Icons.directions_bus,
-  [
-    Consumer<VehicleController>(
-      builder: (context, vehicleProvider, child) {
-        return StreamBuilder<QuerySnapshot>(
-          stream: vehicleProvider.getAvailableVehicles(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: CircularProgressIndicator(color: Color(0xff7B61A1)),
-              );
-            }
+                _buildSectionCard("Bus Assignment", Icons.directions_bus, [
+                  Consumer<VehicleController>(
+                    builder: (context, vehicleProvider, child) {
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: vehicleProvider.getAvailableVehicles(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xff7B61A1),
+                              ),
+                            );
+                          }
 
-            if (snapshot.hasError) {
-              return Text(
-                "Error loading vehicles",
-                style: TextStyle(color: Colors.red),
-              );
-            }
+                          if (snapshot.hasError) {
+                            return Text(
+                              "Error loading vehicles",
+                              style: TextStyle(color: Colors.red),
+                            );
+                          }
 
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return Text(
-                "No available vehicles found",
-                style: TextStyle(color: Colors.grey.shade600),
-              );
-            }
+                          if (!snapshot.hasData ||
+                              snapshot.data!.docs.isEmpty) {
+                            return Text(
+                              "No available vehicles found",
+                              style: TextStyle(color: Colors.grey.shade600),
+                            );
+                          }
 
-            final vehicles = snapshot.data!.docs;
+                          final vehicles = snapshot.data!.docs;
 
-            return DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                prefixIcon: Icon(Icons.directions_bus_outlined, color: Color(0xff7B61A1)),
-                hintText: "Select Available Vehicle",
-                filled: true,
-                fillColor: Color(0xffF8F9FA),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              items: vehicles.map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                return DropdownMenuItem<String>(
-                  value: data['busId'],
-                  child: Text(
-                    "${data['busId']} - ${data['vehicleNumber']} (${data['type']})",
-                    style: TextStyle(fontSize: 14.sp),
+                          return DropdownButtonFormField<String>(
+                            decoration: InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.directions_bus_outlined,
+                                color: Color(0xff7B61A1),
+                              ),
+                              hintText: "Select Available Vehicle",
+                              filled: true,
+                              fillColor: Color(0xffF8F9FA),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            items:
+                                vehicles.map((doc) {
+                                  final data =
+                                      doc.data() as Map<String, dynamic>;
+                                  return DropdownMenuItem<String>(
+                                    value: data['busId'],
+                                    child: Text(
+                                      "${data['busId']} - ${data['vehicleNumber']} (${data['type']})",
+                                      style: TextStyle(fontSize: 14.sp),
+                                    ),
+                                  );
+                                }).toList(),
+                            validator:
+                                (value) =>
+                                    value == null || value.isEmpty
+                                        ? "Vehicle is required"
+                                        : null,
+                            onChanged: (value) {
+                              _formData['assignedBusId'] = value!;
+                            },
+                          );
+                        },
+                      );
+                    },
                   ),
-                );
-              }).toList(),
-              validator: (value) =>
-                  value == null || value.isEmpty ? "Vehicle is required" : null,
-              onChanged: (value) {
-                _formData['assignedBusId'] = value!;
-              },
-            );
-          },
-        );
-      },
-    ),
-  ],
-),
-
+                ]),
 
                 SizedBox(height: 30.h),
 
@@ -209,87 +234,98 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
                 Container(
                   width: double.infinity,
                   height: 56.h,
-                  child: provider.isLoading
-                      ? Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16.r),
-                            color: Color(0xff4CAF50).withOpacity(0.7),
-                          ),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        )
-                      : ElevatedButton(
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate() && _licenseExpiry != null) {
-                              _formKey.currentState!.save();
-                              
-                              await provider.addDriver(
-                                name: _formData['name']!,
-                                email: _formData['email']!,
-                                password: _formData['password']!,
-                                employeeId: _formData['employeeId']!,
-                                contactNumber: _formData['contactNumber']!,
-                                licenseNumber: _formData['licenseNumber']!,
-                                licenseType: _formData['licenseType']!,
-                                licenseExpiry: _licenseExpiry!,
-                                assignedBusId: _formData['assignedBusId']!,
-                              );
-
-                              if (provider.error != null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(provider.error!),
-                                    backgroundColor: Colors.red,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10.r),
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Driver added successfully"),
-                                    backgroundColor: Color(0xff4CAF50),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10.r),
-                                    ),
-                                  ),
-                                );
-                                _formKey.currentState!.reset();
-                                _licenseExpiry = null;
-                                Navigator.pop(context);
-                              }
-                            } else if (_licenseExpiry == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("Please select license expiry date"),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xff7B61A1),
-                            foregroundColor: Colors.white,
-                            elevation: 8,
-                            shadowColor: Color(0xff7B61A1).withOpacity(0.4),
-                            shape: RoundedRectangleBorder(
+                  child:
+                      provider.isLoading
+                          ? Container(
+                            decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16.r),
+                              color: Color(0xff4CAF50).withOpacity(0.7),
+                            ),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          )
+                          : ElevatedButton(
+                            onPressed: () async {
+                              if (_formKey.currentState!.validate() &&
+                                  _licenseExpiry != null) {
+                                _formKey.currentState!.save();
+
+                                await provider.addDriver(
+                                  pincode: _formData['pinNumber']!,
+                                  name: _formData['name']!,
+                                  email: _formData['email']!,
+                                  password: _formData['password']!,
+                                  employeeId: _formData['employeeId']!,
+                                  contactNumber: _formData['contactNumber']!,
+                                  licenseNumber: _formData['licenseNumber']!,
+                                  licenseType: _formData['licenseType']!,
+                                  licenseExpiry: _licenseExpiry!,
+                                  assignedBusId: _formData['assignedBusId']!,
+                                );
+
+                                if (provider.error != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(provider.error!),
+                                      backgroundColor: Colors.red,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          10.r,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        "Driver added successfully",
+                                      ),
+                                      backgroundColor: Color(0xff4CAF50),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          10.r,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                  _formKey.currentState!.reset();
+                                  _licenseExpiry = null;
+                                  Navigator.pop(context);
+                                }
+                              } else if (_licenseExpiry == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Please select license expiry date",
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xff7B61A1),
+                              foregroundColor: Colors.white,
+                              elevation: 8,
+                              shadowColor: Color(0xff7B61A1).withOpacity(0.4),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                              ),
+                            ),
+                            child: Text(
+                              "Add Driver",
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            "Add Driver",
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
                 ),
                 SizedBox(height: 30.h),
               ],
@@ -346,6 +382,7 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
     bool obscure = false,
     int maxLines = 1,
   }) {
+    bool isNumericField = field == "pinNumber" || field == "contactNumber";
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -359,6 +396,8 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
         ),
         SizedBox(height: 8.h),
         TextFormField(
+          keyboardType:
+              isNumericField ? TextInputType.number : TextInputType.text,
           maxLines: maxLines,
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: Color(0xff7B61A1), size: 20.w),
@@ -388,16 +427,38 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
             ),
           ),
           obscureText: obscure,
-          validator: (value) =>
-              value == null || value.isEmpty ? '$label is required' : null,
-          onSaved: (value) => _formData[field] = value!,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return '$label is required';
+            }
+            if (field == "contactNumber") {
+              if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
+                return 'Enter a valid 10-digit phone number';
+              }
+            }
+            if (field == "pinNumber") {
+              if (!RegExp(r'^[0-9]{6}$').hasMatch(value)) {
+                return 'Enter a valid 6-digit PIN';
+              }
+            }
+            return null;
+          },
+          onSaved: (value) {
+            // Save all fields as strings, including pincode
+            _formData[field] = value!;
+          },
           style: TextStyle(fontSize: 14.sp, color: Color(0xff333333)),
         ),
       ],
     );
   }
 
-  Widget buildDropdownField(String label, String field, IconData icon, List<String> options) {
+  Widget buildDropdownField(
+    String label,
+    String field,
+    IconData icon,
+    List<String> options,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -438,17 +499,19 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
               vertical: 16.h,
             ),
           ),
-          items: options.map((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(
-                value,
-                style: TextStyle(fontSize: 14.sp, color: Color(0xff333333)),
-              ),
-            );
-          }).toList(),
-          validator: (value) =>
-              value == null || value.isEmpty ? '$label is required' : null,
+          items:
+              options.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(
+                    value,
+                    style: TextStyle(fontSize: 14.sp, color: Color(0xff333333)),
+                  ),
+                );
+              }).toList(),
+          validator:
+              (value) =>
+                  value == null || value.isEmpty ? '$label is required' : null,
           onChanged: (value) => _formData[field] = value!,
           style: TextStyle(fontSize: 14.sp, color: Color(0xff333333)),
         ),
@@ -500,13 +563,18 @@ class _AddDriverScreenState extends State<AddDriverScreen> {
                       : "${_licenseExpiry!.day}/${_licenseExpiry!.month}/${_licenseExpiry!.year}",
                   style: TextStyle(
                     fontSize: 14.sp,
-                    color: _licenseExpiry == null
-                        ? Colors.grey.shade400
-                        : Color(0xff333333),
+                    color:
+                        _licenseExpiry == null
+                            ? Colors.grey.shade400
+                            : Color(0xff333333),
                   ),
                 ),
                 Spacer(),
-                Icon(Icons.calendar_today, color: Colors.grey.shade400, size: 16.w),
+                Icon(
+                  Icons.calendar_today,
+                  color: Colors.grey.shade400,
+                  size: 16.w,
+                ),
               ],
             ),
           ),

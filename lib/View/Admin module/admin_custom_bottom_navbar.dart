@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vignan_transportation_management/View/Admin%20module/admin_attendence_screen.dart';
 import 'package:vignan_transportation_management/View/Admin%20module/admin_dashboard_screen.dart';
 import 'package:vignan_transportation_management/View/Admin%20module/admin_drivers_screen.dart';
 
@@ -45,7 +46,7 @@ class _AdminCustomBottomNavbarScreenState
     AdminDashboardScreen(),
     AdminStudentsScreen(),
     AdminDriversScreen(),
-    AdminNotificationScreen(),
+    AdminAttendenceScreen(),
     AdminSettingsScreen(),
   ];
 
@@ -69,8 +70,8 @@ class _AdminCustomBottomNavbarScreenState
       'color': accentPurple,
     },
     {
-      'selectedIcon': Icons.notifications,
-      'unselectedIcon': Icons.notifications_outlined,
+      'selectedIcon': Icons.bar_chart,
+      'unselectedIcon': Icons.bar_chart_outlined,
       'label': 'Notifications',
       'color': darkPurple,
     },

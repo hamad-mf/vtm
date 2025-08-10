@@ -12,7 +12,6 @@ import 'package:vignan_transportation_management/View/Parent%20module/parent_hom
 import 'package:vignan_transportation_management/View/Staff%20Module/staff_home_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_home_screen.dart';
 
-
 class LoginController with ChangeNotifier {
   bool isloading = false;
 
@@ -69,25 +68,32 @@ class LoginController with ChangeNotifier {
             return;
           }
 
-if (token != null) {
-      await FirebaseFirestore.instance.collection('roles').doc(uid).update({
-        'fcmToken': token,
-        'tokenUpdatedAt': FieldValue.serverTimestamp(),
-      });
-      log("Updated FCM token for $uid: $token");
-    }
+          if (token != null) {
+            await FirebaseFirestore.instance
+                .collection('roles')
+                .doc(uid)
+                .update({
+                  'fcmToken': token,
+                  'tokenUpdatedAt': FieldValue.serverTimestamp(),
+                });
+            log("Updated FCM token for $uid: $token");
+          }
           // Store login status
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool('is${role}LoggedIn', true);
-         final key = 'is${role}LoggedIn';
-final value = prefs.getBool(key);
-log("$key: $value");
+          final key = 'is${role}LoggedIn';
+          final value = prefs.getBool(key);
+          log("$key: $value");
+          isloading = false;
+          notifyListeners();
           // Navigate accordingly
           switch (role) {
             case 'admin':
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => AdminCustomBottomNavbarScreen()),
+                MaterialPageRoute(
+                  builder: (_) => AdminCustomBottomNavbarScreen(),
+                ),
                 (route) => false,
               );
               break;

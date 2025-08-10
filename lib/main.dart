@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/attendence_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/driver_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/route_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/vehicle_controller.dart';
@@ -25,7 +26,6 @@ void main() async {
   runApp(MyApp());
 }
 
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -37,6 +37,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => StudentController()),
         ChangeNotifierProvider(create: (context) => DriverController()),
         ChangeNotifierProvider(create: (context) => RouteController()),
+        ChangeNotifierProvider(create: (context) => AttendanceController()),
         ChangeNotifierProvider(create: (_) => VehicleController()),
       ],
       child: ScreenUtilInit(

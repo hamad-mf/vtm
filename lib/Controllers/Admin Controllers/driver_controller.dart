@@ -20,67 +20,88 @@ class DriverController with ChangeNotifier {
         .snapshots();
   }
 
-  Future<void> addDriver({
-    required String name,
-    required String email,
-    required String password,
-    required String employeeId,
-    required String contactNumber,
-    required String licenseNumber,
-    required String licenseType,
-    required DateTime licenseExpiry,
-    required String assignedBusId,
-  }) async {
-    isLoading = true;
-    error = null;
-    notifyListeners();
-    try {
-      DocumentSnapshot busDoc =
-          await _firestore.collection('vehicles').doc(assignedBusId).get();
-      if (!busDoc.exists) {
-        throw Exception("Assigned bus not found");
-      }
-      if (busDoc['assignedDriverId'] != null) {
-        throw Exception("This bus is already assigned to another driver");
-      }
+Future<void> addDriver({
+  required String pincode,  // Keep pincode as String for flexibility
+  required String name,
+  required String email,
+  required String password,
+  required String employeeId,
+  required String contactNumber,
+  required String licenseNumber,
+  required String licenseType,
+  required DateTime licenseExpiry,
+  required String assignedBusId,
+}) async {
+  isLoading = true;
+  error = null;
+  notifyListeners();
 
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      String uid = result.user!.uid;
-
-      await _firestore.collection('roles').doc(uid).set({'role': 'driver'});
-
-      Map<String, dynamic> driverData = {
-        'name': name,
-        'email': email,
-        'employeeId': employeeId,
-        'contactNumber': contactNumber,
-        'licenseNumber': licenseNumber,
-        'licenseType': licenseType,
-        'licenseExpiry': Timestamp.fromDate(licenseExpiry),
-        'assignedBusId': assignedBusId,
-        'isAssigned': false,
-        'assignedRoute': null,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-      await _firestore.collection('drivers').doc(uid).set(driverData);
-
-      await _firestore.collection('vehicles').doc(assignedBusId).update({
-        'assignedDriverId': uid,
-        'assignedRouteId': null
-      });
-    } catch (e) {
-      error = e.toString();
-    } finally {
-      isLoading = false;
-      notifyListeners();
+  try {
+    // Check if pincode already exists
+    var query = await _firestore
+        .collection('drivers')
+        .where('pincode', isEqualTo: pincode)
+        .get();
+    if (query.docs.isNotEmpty) {
+      throw Exception('Pincode already exists. Please choose a unique PIN.');
     }
-  }
 
-  Future<void> updateDriver(String driverId, Map<String, dynamic> updatedData) async {
+    // Validate assigned bus
+    DocumentSnapshot busDoc = await _firestore.collection('vehicles').doc(assignedBusId).get();
+    if (!busDoc.exists) {
+      throw Exception("Assigned bus not found");
+    }
+    if (busDoc['assignedDriverId'] != null) {
+      throw Exception("This bus is already assigned to another driver");
+    }
+
+    // Create Firebase Authentication user for the driver
+    UserCredential result = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    String uid = result.user!.uid;
+
+    // Set user role
+    await _firestore.collection('roles').doc(uid).set({'role': 'driver'});
+
+    // Store driver data in Firestore
+    Map<String, dynamic> driverData = {
+      'driverId': uid,
+      'pincode': pincode,
+      'name': name,
+      'email': email,
+      'employeeId': employeeId,
+      'contactNumber': contactNumber,
+      'licenseNumber': licenseNumber,
+      'licenseType': licenseType,
+      'licenseExpiry': Timestamp.fromDate(licenseExpiry),
+      'assignedBusId': assignedBusId,
+      'isAssigned': false,
+      'assignedRoute': null,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    await _firestore.collection('drivers').doc(uid).set(driverData);
+
+    // Update the assigned vehicle document
+    await _firestore.collection('vehicles').doc(assignedBusId).update({
+      'assignedDriverId': uid,
+      'assignedRouteId': null,
+    });
+  } catch (e) {
+    error = e.toString();
+  } finally {
+    isLoading = false;
+    notifyListeners();
+  }
+}
+
+
+  Future<void> updateDriver(
+    String driverId,
+    Map<String, dynamic> updatedData,
+  ) async {
     isLoading = true;
     error = null;
     notifyListeners();
@@ -111,13 +132,13 @@ class DriverController with ChangeNotifier {
           await _firestore.collection('routes').doc(routeId).update({
             'assignedDriverId': null,
             'assignedDriverName': null,
-            'assignedVehicleId': null
+            'assignedVehicleId': null,
           });
         }
         if (busId != null) {
           await _firestore.collection('vehicles').doc(busId).update({
             'assignedDriverId': null,
-            'assignedRouteId': null
+            'assignedRouteId': null,
           });
         }
       }
