@@ -7,12 +7,15 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vignan_transportation_management/View/Admin%20module/admin_custom_bottom_navbar.dart';
 import 'package:vignan_transportation_management/View/Common%20Screens/profile_selection_screen.dart';
-import 'package:vignan_transportation_management/View/Driver%20module/driver_home_screen.dart';
+import 'package:vignan_transportation_management/View/Driver%20module/driver_custom_bottom_navbar.dart';
+
 import 'package:vignan_transportation_management/View/Parent%20module/parent_home_screen.dart';
 import 'package:vignan_transportation_management/View/Staff%20Module/staff_home_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_home_screen.dart';
 
 class LoginController with ChangeNotifier {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool isloading = false;
 
   Future<void> signOut(BuildContext context) async {
@@ -36,6 +39,7 @@ class LoginController with ChangeNotifier {
   }
 
   onLogin({
+    required String enteredRegNo, // Parent must supply this during login form
     required String email,
     required String password,
     required BuildContext context,
@@ -46,19 +50,23 @@ class LoginController with ChangeNotifier {
     notifyListeners();
 
     try {
-      final credentials = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+      final credentials = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       if (credentials.user?.uid != null) {
         String uid = credentials.user!.uid;
-        // fetch user role
+
+        // 1. Fetch role document
         DocumentSnapshot roldoc =
-            await FirebaseFirestore.instance.collection('roles').doc(uid).get();
+            await _firestore.collection('roles').doc(uid).get();
+
         if (roldoc.exists) {
           String role = roldoc['role'];
           log("role of the user : $role");
 
-          // Validate role match
+          // 2. Validate role
           if (passedrole != role) {
             isloading = false;
             notifyListeners();
@@ -67,26 +75,55 @@ class LoginController with ChangeNotifier {
             ).showSnackBar(SnackBar(content: Text("Invalid credentials")));
             return;
           }
-                                              
+
+          // 3. If parent, perform StudentRegNo verification
+          if (role == "parent") {
+            // Fetch the parent doc to get linked studentRegNo
+            DocumentSnapshot parentDoc =
+                await _firestore.collection('parents').doc(uid).get();
+
+            if (!parentDoc.exists) {
+              isloading = false;
+              notifyListeners();
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text("Parent data not found")));
+              return;
+            }
+
+            String? storedStudentRegNo = parentDoc['StudentRegNo'];
+
+            if (enteredRegNo != storedStudentRegNo) {
+              isloading = false;
+              notifyListeners();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Student Registration No Verification Failed"),
+                ),
+              );
+              // Optionally: Sign out immediately.
+              await _auth.signOut();
+              return;
+            }
+          }
+
+          // 4. If FCM token provided, update roles collection
           if (token != null) {
-            await FirebaseFirestore.instance
-                .collection('roles')
-                .doc(uid)
-                .update({
-                  'fcmToken': token,
-                  'tokenUpdatedAt': FieldValue.serverTimestamp(),
-                });
+            await _firestore.collection('roles').doc(uid).update({
+              'fcmToken': token,
+              'tokenUpdatedAt': FieldValue.serverTimestamp(),
+            });
             log("Updated FCM token for $uid: $token");
           }
-          // Store login status
+
+          // 5. Store login status
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool('is${role}LoggedIn', true);
-          final key = 'is${role}LoggedIn';
-          final value = prefs.getBool(key);
-          log("$key: $value");
+
           isloading = false;
           notifyListeners();
-          // Navigate accordingly
+
+          // 6. Navigate to home screens
           switch (role) {
             case 'admin':
               Navigator.pushAndRemoveUntil(
@@ -97,15 +134,15 @@ class LoginController with ChangeNotifier {
                 (route) => false,
               );
               break;
-
             case 'driver':
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => DriverHomeScreen()),
+                MaterialPageRoute(
+                  builder: (_) => DriverCustomBottomNavbar(initialIndex: 0),
+                ),
                 (route) => false,
               );
               break;
-
             case 'student':
               Navigator.pushAndRemoveUntil(
                 context,
@@ -113,7 +150,6 @@ class LoginController with ChangeNotifier {
                 (route) => false,
               );
               break;
-
             case 'staff':
               Navigator.pushAndRemoveUntil(
                 context,
@@ -121,7 +157,6 @@ class LoginController with ChangeNotifier {
                 (route) => false,
               );
               break;
-
             case 'parent':
               Navigator.pushAndRemoveUntil(
                 context,
@@ -129,12 +164,17 @@ class LoginController with ChangeNotifier {
                 (route) => false,
               );
               break;
-
             default:
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text("Unknown role: $role")));
           }
+        } else {
+          isloading = false;
+          notifyListeners();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("User role not found")));
         }
       }
     } on FirebaseAuthException catch (e) {

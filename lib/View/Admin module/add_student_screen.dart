@@ -16,6 +16,9 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   final Map<String, String> _formData = {};
   String? _selectedRouteId;
   String? _selectedRouteName;
+
+  String? _selectedDriverId;
+String? _selectedDriverName;
   final _latController = TextEditingController();
   final _lngController = TextEditingController();
 
@@ -160,6 +163,9 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                       // ROUTE SELECTION FROM FIRESTORE
                       _buildRouteDropdown(),
                       SizedBox(height: 16.h),
+                      // DRIVER SELECTION FROM FIRESTORE
+                      _buildDriversDropdown(),
+                      SizedBox(height: 16.h),
                       // DESTINATION LATITUDE
                       buildLatLngField(
                         "Destination Latitude",
@@ -212,9 +218,16 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                                 _formData['destinationLatitude'] =
                                     _latController.text.trim();
                                 _formData['destinationLongitude'] =
-                                    _lngController.text.trim();
+                                    _lngController.text.trim();   
+
+                                     // Add these two new lines to save the driver data
+            _formData['assignedDriverId'] = _selectedDriverId ?? "";
+            _formData['assignedDriverName'] = _selectedDriverName ?? "";
 
                                 await provider.addStudent(
+                                                  assignedDriverId: _formData['assignedDriverId']!,
+                assignedDriverName: _formData['assignedDriverName']!,
+                                  context: context,
                                   name: _formData['name']!,
                                   email: _formData['email']!,
                                   password: _formData['password']!,
@@ -230,36 +243,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                                   destinationLongitude:
                                       _formData['destinationLongitude']!,
                                 );
-
-                                if (provider.error != null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(provider.error!),
-                                      backgroundColor: Colors.red,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          10.r,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        "Student added successfully",
-                                      ),
-                                      backgroundColor: Color(0xff4CAF50),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          10.r,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                  _formKey.currentState!.reset();
-                                  Navigator.pop(context);
-                                }
+                                _formKey.currentState!.reset();
                               }
                             },
                             style: ElevatedButton.styleFrom(
@@ -287,6 +271,94 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // drivers Dropdown - Gets Data From Firestore
+  Widget _buildDriversDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Assigned Driver",
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: Color(0xff333333),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        StreamBuilder<QuerySnapshot>(
+          stream:
+              FirebaseFirestore.instance
+                  .collection('drivers')
+                  .orderBy('name')
+                  .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting)
+              return CircularProgressIndicator();
+            if (snapshot.hasError)
+              return Text(
+                "Failed to load drivers",
+                style: TextStyle(color: Colors.red),
+              );
+            final docs = snapshot.data?.docs ?? [];
+            if (docs.isEmpty)
+              return Text(
+                "No drivers found",
+                style: TextStyle(color: Colors.grey),
+              );
+
+            return DropdownButtonFormField<String>(
+              isExpanded: true,
+              value: _selectedDriverId,
+              decoration: InputDecoration(
+                prefixIcon: Icon(
+                  Icons.directions_bus_outlined,
+                  color: Color(0xff7B61A1),
+                ),
+                hintText: "Select Assigned Driver",
+                filled: true,
+                fillColor: Color(0xffF8F9FA),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              items:
+                  docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final routeName = data['name'] ?? doc.id;
+                    final driverId = data['driverId'] ?? doc.id;
+                    return DropdownMenuItem<String>(
+                      value: doc.id,
+                      child: Text(
+                        routeName,
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: Color(0xff333333),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+              validator:
+                  (value) =>
+                      value == null || value.isEmpty
+                          ? 'Assigned driver is required'
+                          : null,
+              onChanged: (id) {
+                setState(() {
+                  _selectedDriverId  = id!;
+                  // Also capture the display name for later saving to the student document
+                  final doc = docs.firstWhere((doc) => doc.id == id);
+                  final data = doc.data() as Map<String, dynamic>;
+                  _selectedDriverName  = data['name'] ?? id;
+                });
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 

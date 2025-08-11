@@ -8,7 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vignan_transportation_management/View/Admin%20module/admin_custom_bottom_navbar.dart';
 
 import 'package:vignan_transportation_management/View/Common%20Screens/profile_selection_screen.dart';
-import 'package:vignan_transportation_management/View/Driver%20module/driver_home_screen.dart';
+import 'package:vignan_transportation_management/View/Driver%20module/driver_custom_bottom_navbar.dart';
+
 import 'package:vignan_transportation_management/View/Parent%20module/parent_home_screen.dart';
 import 'package:vignan_transportation_management/View/Staff%20Module/staff_home_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_home_screen.dart';
@@ -72,7 +73,9 @@ class _SplashScreenState extends State<SplashScreen> {
         );
       } else if (isDriverLoggedIn) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => DriverHomeScreen()),
+          MaterialPageRoute(
+            builder: (_) => DriverCustomBottomNavbar(initialIndex: 0),
+          ),
         );
       } else {
         log("profile screen");

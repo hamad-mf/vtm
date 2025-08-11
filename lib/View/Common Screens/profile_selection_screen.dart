@@ -230,6 +230,7 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
                         () => _navigateToLogin(
                           FontAwesomeIcons.screwdriverWrench,
                           "admin",
+                          false,
                         ),
                         [primaryPurple, darkPurple],
                       ),
@@ -241,6 +242,7 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
                         () => _navigateToLogin(
                           FontAwesomeIcons.busSimple,
                           "driver",
+                          false,
                         ),
                         [lightPurple, primaryPurple],
                       ),
@@ -263,6 +265,7 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
                         () => _navigateToLogin(
                           FontAwesomeIcons.personBreastfeeding,
                           "parent",
+                          true,
                         ),
                         [accentPurple, primaryPurple],
                       ),
@@ -290,6 +293,7 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
                                             () => _navigateToLogin(
                                               FontAwesomeIcons.graduationCap,
                                               "student",
+                                              false,
                                             ),
                                             [primaryPurple, lightPurple],
                                           ),
@@ -299,6 +303,7 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
                                             () => _navigateToLogin(
                                               FontAwesomeIcons.personChalkboard,
                                               "staff",
+                                              false,
                                             ),
                                             [darkPurple, primaryPurple],
                                           ),
@@ -422,7 +427,7 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
     );
   }
 
-  void _navigateToLogin(IconData icon, String role) {
+  void _navigateToLogin(IconData icon, String role, bool isParent) {
     setState(() {
       isuserSelected = false;
     });
@@ -431,7 +436,7 @@ class _ProfileSelectionScreenState extends State<ProfileSelectionScreen>
       PageRouteBuilder(
         pageBuilder:
             (context, animation, secondaryAnimation) =>
-                LoginScreen(icon: icon, role: role),
+                LoginScreen(isParent: isParent, icon: icon, role: role),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return SlideTransition(
             position: Tween<Offset>(

@@ -8,9 +8,15 @@ import 'package:provider/provider.dart';
 import 'package:vignan_transportation_management/Controllers/Common%20Controllers/login_controller.dart';
 
 class LoginScreen extends StatefulWidget {
+  bool isParent;
   String role;
   IconData icon;
-  LoginScreen({super.key, required this.icon, required this.role});
+  LoginScreen({
+    super.key,
+    required this.icon,
+    required this.isParent,
+    required this.role,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -19,6 +25,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _regnoController = TextEditingController();
   bool _obscurePassword = true;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -276,8 +283,72 @@ class _LoginScreenState extends State<LoginScreen> {
                                       return null;
                                     },
                                   ),
+                                  SizedBox(height: 20.h),
+                                  if (widget.isParent)
+                                    // student register no field
+                                    Text(
+                                      "Student register number",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  if (widget.isParent) SizedBox(height: 8.h),
+                                  if (widget.isParent)
+                                    TextFormField(
+                                      controller: _regnoController,
 
-                                  SizedBox(height: 24.h),
+                                      style: TextStyle(color: Colors.white),
+                                      decoration: InputDecoration(
+                                        errorStyle: TextStyle(
+                                          color: Colors.orange,
+                                          fontSize: 13.sp,
+                                        ),
+                                        hintText: 'Enter the register number',
+                                        hintStyle: TextStyle(
+                                          color: Colors.white.withOpacity(0.6),
+                                        ),
+                                        prefixIcon: Icon(
+                                          Icons.lock_outline,
+                                          color: Colors.white.withOpacity(0.7),
+                                        ),
+
+                                        filled: true,
+                                        fillColor: Colors.white.withOpacity(
+                                          0.1,
+                                        ),
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 16.w,
+                                          vertical: 16.h,
+                                        ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12.r,
+                                          ),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12.r,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: Colors.white,
+                                            width: 2.0,
+                                          ),
+                                        ),
+                                      ),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Please enter reg no';
+                                        }
+                                        if (value.length < 6) {
+                                          return 'reg no must be at lease 6 charecters';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  if (widget.isParent) SizedBox(height: 24.h),
 
                                   // Login button
                                   SizedBox(
@@ -285,11 +356,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                     height: 56.h,
                                     child: ElevatedButton(
                                       onPressed: () async {
-                                        String? token = await FirebaseMessaging.instance.getToken();
+                                        String? token =
+                                            await FirebaseMessaging.instance
+                                                .getToken();
                                         if (_formKey.currentState!.validate()) {
                                           context
                                               .read<LoginController>()
                                               .onLogin(
+                                                enteredRegNo:
+                                                    _regnoController.text,
                                                 token: token,
                                                 email: _emailController.text,
                                                 password:

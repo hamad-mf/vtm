@@ -1,26 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vignan_transportation_management/View/Admin%20module/admin_attendence_screen.dart';
-import 'package:vignan_transportation_management/View/Admin%20module/admin_dashboard_screen.dart';
-import 'package:vignan_transportation_management/View/Admin%20module/admin_drivers_screen.dart';
+import 'package:vignan_transportation_management/View/Driver%20module/driver_calender_screen.dart';
+import 'package:vignan_transportation_management/View/Driver%20module/driver_dashboard_screen.dart';
+import 'package:vignan_transportation_management/View/Driver%20module/driver_map_screen.dart';
+import 'package:vignan_transportation_management/View/Driver%20module/driver_pin_attendence_screen.dart';
+import 'package:vignan_transportation_management/View/Driver%20module/driver_students_screen.dart';
 
-
-import 'package:vignan_transportation_management/View/Admin%20module/admin_settings_screen.dart';
-
-import 'package:vignan_transportation_management/View/Admin%20module/admin_students_screen.dart';
-
-class AdminCustomBottomNavbarScreen extends StatefulWidget {
+class DriverCustomBottomNavbar extends StatefulWidget {
   final int initialIndex;
-  const AdminCustomBottomNavbarScreen({this.initialIndex = 0, super.key});
+  const DriverCustomBottomNavbar({required this.initialIndex, super.key});
 
   @override
-  State<AdminCustomBottomNavbarScreen> createState() =>
-      _AdminCustomBottomNavbarScreenState();
+  State<DriverCustomBottomNavbar> createState() => _DriverCustomBottomNavbarState();
 }
 
-class _AdminCustomBottomNavbarScreenState
-    extends State<AdminCustomBottomNavbarScreen>
-    with TickerProviderStateMixin {
+class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar> with TickerProviderStateMixin {
+
+
+
   @override
   void initState() {
     super.initState();
@@ -29,12 +26,7 @@ class _AdminCustomBottomNavbarScreenState
   }
 
   int _currentIndex = 0;
-  // late AnimationController _animationController;
-  // late AnimationController _rippleController;
-  // late List<AnimationController> _iconControllers;
-
-  // Purple color palette
-  static const Color primaryPurple = Color(0xff7e57c2);
+    static const Color primaryPurple = Color(0xff7e57c2);
   static const Color lightPurple = Color(0xff9c7fd6);
   static const Color darkPurple = Color(0xff5a3f8a);
   static const Color veryDarkPurple = Color(0xff4a2f73);
@@ -42,15 +34,16 @@ class _AdminCustomBottomNavbarScreenState
   static const Color backgroundPurple = Color(0xfff3f0ff);
   static const Color softPurple = Color(0xffe1d5f7);
 
-  final List<Widget> _screens = [
-    AdminDashboardScreen(),
-    AdminStudentsScreen(),
-    AdminDriversScreen(),
-    AdminAttendenceScreen(),
-    AdminSettingsScreen(),
+ final List<Widget> _screens = [
+    DriverDashboardScreen(),
+    DriverStudentsScreen(),
+    DriverMapScreen(),
+    DriverPinAttendanceScreen(),
+    DriverCalenderScreen(),
+    
   ];
 
-  final List<Map<String, dynamic>> _navItems = [
+ final List<Map<String, dynamic>> _navItems = [
     {
       'selectedIcon': Icons.dashboard,
       'unselectedIcon': Icons.dashboard_outlined,
@@ -66,28 +59,30 @@ class _AdminCustomBottomNavbarScreenState
     {
       'selectedIcon': Icons.directions_bus,
       'unselectedIcon': Icons.directions_bus_outlined,
-      'label': 'Drivers',
+      'label': 'Map',
       'color': accentPurple,
     },
     {
       'selectedIcon': Icons.bar_chart,
       'unselectedIcon': Icons.bar_chart_outlined,
-      'label': 'Notifications',
+      'label': 'attendence',
       'color': darkPurple,
     },
     {
       'selectedIcon': Icons.settings,
       'unselectedIcon': Icons.settings_outlined,
-      'label': 'Settings',
+      'label': 'calender',
       'color': darkPurple,
     },
   ];
+
 
   void _onNavItemTapped(int index) {
     setState(() => _currentIndex = index);
   }
 
-  @override
+
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
