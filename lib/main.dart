@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/attendence_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/driver_controller.dart';
+import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/parent_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/route_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/vehicle_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Common%20Controllers/login_controller.dart';
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => DriverController()),
         ChangeNotifierProvider(create: (context) => RouteController()),
         ChangeNotifierProvider(create: (context) => AttendanceController()),
+        ChangeNotifierProvider(create: (context) => ParentController()),
         ChangeNotifierProvider(create: (_) => VehicleController()),
       ],
       child: ScreenUtilInit(

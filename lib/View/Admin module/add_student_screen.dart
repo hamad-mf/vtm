@@ -188,89 +188,98 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                 Container(
                   width: double.infinity,
                   height: 56.h,
-                  child: provider.isLoading
-                      ? Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16.r),
-                            color: Color(0xff4CAF50).withOpacity(0.7),
-                          ),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
+                  child:
+                      provider.isLoading
+                          ? Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16.r),
+                              color: Color(0xff4CAF50).withOpacity(0.7),
                             ),
-                          ),
-                        )
-                      : ElevatedButton(
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-                              _formKey.currentState!.save();
-                              // Set assignedRoute field in _formData to route's name (display) or ID (your choice)
-                              _formData['assignedRoute'] = _selectedRouteName ?? "";
-                              _formData['destinationLatitude'] = _latController.text.trim();
-                              _formData['destinationLongitude'] = _lngController.text.trim();
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          )
+                          : ElevatedButton(
+                            onPressed: () async {
+                              if (_formKey.currentState!.validate()) {
+                                _formKey.currentState!.save();
+                                // Set assignedRoute field in _formData to route's name (display) or ID (your choice)
+                                _formData['assignedRoute'] =
+                                    _selectedRouteName ?? "";
+                                _formData['destinationLatitude'] =
+                                    _latController.text.trim();
+                                _formData['destinationLongitude'] =
+                                    _lngController.text.trim();
 
-                              await provider.addStudent(
-                                name: _formData['name']!,
-                                email: _formData['email']!,
-                                password: _formData['password']!,
-                                registrationNumber: _formData['registrationNumber']!,
-                                mobileNumber: _formData['mobileNumber']!,
-                                address: _formData['address']!,
-                                assignedRoute: _formData['assignedRoute']!,
-                                paymentStatus: _formData['paymentStatus']!,
-                                // destination fields injected above
-                                destinationLatitude: _formData['destinationLatitude']!,
-                                destinationLongitude: _formData['destinationLongitude']!,
-                              );
-
-                              if (provider.error != null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(provider.error!),
-                                    backgroundColor: Colors.red,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10.r),
-                                    ),
-                                  ),
+                                await provider.addStudent(
+                                  name: _formData['name']!,
+                                  email: _formData['email']!,
+                                  password: _formData['password']!,
+                                  registrationNumber:
+                                      _formData['registrationNumber']!,
+                                  mobileNumber: _formData['mobileNumber']!,
+                                  address: _formData['address']!,
+                                  assignedRoute: _formData['assignedRoute']!,
+                                  paymentStatus: _formData['paymentStatus']!,
+                                  // destination fields injected above
+                                  destinationLatitude:
+                                      _formData['destinationLatitude']!,
+                                  destinationLongitude:
+                                      _formData['destinationLongitude']!,
                                 );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      "Student added successfully",
-                                    ),
-                                    backgroundColor: Color(0xff4CAF50),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        10.r,
+
+                                if (provider.error != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(provider.error!),
+                                      backgroundColor: Colors.red,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          10.r,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                                _formKey.currentState!.reset();
-                                Navigator.pop(context);
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        "Student added successfully",
+                                      ),
+                                      backgroundColor: Color(0xff4CAF50),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          10.r,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                  _formKey.currentState!.reset();
+                                  Navigator.pop(context);
+                                }
                               }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xff7B61A1),
-                            foregroundColor: Colors.white,
-                            elevation: 8,
-                            shadowColor: Color(0xff7B61A1).withOpacity(0.4),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16.r),
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xff7B61A1),
+                              foregroundColor: Colors.white,
+                              elevation: 8,
+                              shadowColor: Color(0xff7B61A1).withOpacity(0.4),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                              ),
+                            ),
+                            child: Text(
+                              "Add Student",
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            "Add Student",
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
                 ),
                 SizedBox(height: 30.h),
               ],
@@ -296,21 +305,34 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
         ),
         SizedBox(height: 8.h),
         StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('routes').orderBy('routeName').snapshots(),
+          stream:
+              FirebaseFirestore.instance
+                  .collection('routes')
+                  .orderBy('routeName')
+                  .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting)
               return CircularProgressIndicator();
             if (snapshot.hasError)
-              return Text("Failed to load routes", style: TextStyle(color: Colors.red));
+              return Text(
+                "Failed to load routes",
+                style: TextStyle(color: Colors.red),
+              );
             final docs = snapshot.data?.docs ?? [];
             if (docs.isEmpty)
-              return Text("No routes found", style: TextStyle(color: Colors.grey));
+              return Text(
+                "No routes found",
+                style: TextStyle(color: Colors.grey),
+              );
 
             return DropdownButtonFormField<String>(
               isExpanded: true,
               value: _selectedRouteId,
               decoration: InputDecoration(
-                prefixIcon: Icon(Icons.directions_bus_outlined, color: Color(0xff7B61A1)),
+                prefixIcon: Icon(
+                  Icons.directions_bus_outlined,
+                  color: Color(0xff7B61A1),
+                ),
                 hintText: "Select Assigned Route",
                 filled: true,
                 fillColor: Color(0xffF8F9FA),
@@ -319,18 +341,26 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                   borderSide: BorderSide.none,
                 ),
               ),
-              items: docs.map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                final routeName = data['routeName'] ?? doc.id;
-                return DropdownMenuItem<String>(
-                  value: doc.id,
-                  child: Text(
-                    routeName,
-                    style: TextStyle(fontSize: 14.sp, color: Color(0xff333333)),
-                  ),
-                );
-              }).toList(),
-              validator: (value) => value == null || value.isEmpty ? 'Assigned Route is required' : null,
+              items:
+                  docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final routeName = data['routeName'] ?? doc.id;
+                    return DropdownMenuItem<String>(
+                      value: doc.id,
+                      child: Text(
+                        routeName,
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: Color(0xff333333),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+              validator:
+                  (value) =>
+                      value == null || value.isEmpty
+                          ? 'Assigned Route is required'
+                          : null,
               onChanged: (id) {
                 setState(() {
                   _selectedRouteId = id!;
@@ -348,7 +378,11 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   }
 
   // destination latitude & longitude fields
-  Widget buildLatLngField(String label, TextEditingController controller, String key) {
+  Widget buildLatLngField(
+    String label,
+    TextEditingController controller,
+    String key,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -365,7 +399,10 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
           controller: controller,
           keyboardType: TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
-            prefixIcon: Icon(Icons.location_on_outlined, color: Color(0xff7B61A1)),
+            prefixIcon: Icon(
+              Icons.location_on_outlined,
+              color: Color(0xff7B61A1),
+            ),
             hintText: label,
             filled: true,
             fillColor: Color(0xffF8F9FA),
@@ -378,8 +415,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
             if (value == null || value.trim().isEmpty)
               return '$label is required';
             final parsed = double.tryParse(value.trim());
-            if (parsed == null)
-              return 'Enter valid $label';
+            if (parsed == null) return 'Enter valid $label';
             if (label.contains('Latitude') && (parsed < -90 || parsed > 90))
               return 'Latitude must be between -90 and 90';
             if (label.contains('Longitude') && (parsed < -180 || parsed > 180))
@@ -399,6 +435,8 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
     bool obscure = false,
     int maxLines = 1,
   }) {
+    bool isNumericField =
+        field == "registrationNumber" || field == "mobileNumber" || field == "";
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -412,6 +450,8 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
         ),
         SizedBox(height: 8.h),
         TextFormField(
+          keyboardType:
+              isNumericField ? TextInputType.number : TextInputType.text,
           maxLines: maxLines,
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: Color(0xff7B61A1), size: 20.w),
@@ -441,8 +481,9 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
             ),
           ),
           obscureText: obscure,
-          validator: (value) =>
-              value == null || value.isEmpty ? '$label is required' : null,
+          validator:
+              (value) =>
+                  value == null || value.isEmpty ? '$label is required' : null,
           onSaved: (value) => _formData[field] = value!,
           style: TextStyle(fontSize: 14.sp, color: Color(0xff333333)),
         ),
@@ -491,18 +532,19 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
               vertical: 16.h,
             ),
           ),
-          items: ['Paid', 'Pending', 'Overdue']
-              .map((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(
-                value,
-                style: TextStyle(fontSize: 14.sp, color: Color(0xff333333)),
-              ),
-            );
-          }).toList(),
-          validator: (value) =>
-              value == null || value.isEmpty ? '$label is required' : null,
+          items:
+              ['Paid', 'Pending', 'Overdue'].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(
+                    value,
+                    style: TextStyle(fontSize: 14.sp, color: Color(0xff333333)),
+                  ),
+                );
+              }).toList(),
+          validator:
+              (value) =>
+                  value == null || value.isEmpty ? '$label is required' : null,
           onChanged: (value) => _formData[field] = value!,
           style: TextStyle(fontSize: 14.sp, color: Color(0xff333333)),
         ),
