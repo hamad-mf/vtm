@@ -11,13 +11,12 @@ class DriverCustomBottomNavbar extends StatefulWidget {
   const DriverCustomBottomNavbar({required this.initialIndex, super.key});
 
   @override
-  State<DriverCustomBottomNavbar> createState() => _DriverCustomBottomNavbarState();
+  State<DriverCustomBottomNavbar> createState() =>
+      _DriverCustomBottomNavbarState();
 }
 
-class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar> with TickerProviderStateMixin {
-
-
-
+class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar>
+    with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
@@ -26,7 +25,7 @@ class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar> wit
   }
 
   int _currentIndex = 0;
-    static const Color primaryPurple = Color(0xff7e57c2);
+  static const Color primaryPurple = Color(0xff7e57c2);
   static const Color lightPurple = Color(0xff9c7fd6);
   static const Color darkPurple = Color(0xff5a3f8a);
   static const Color veryDarkPurple = Color(0xff4a2f73);
@@ -34,16 +33,15 @@ class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar> wit
   static const Color backgroundPurple = Color(0xfff3f0ff);
   static const Color softPurple = Color(0xffe1d5f7);
 
- final List<Widget> _screens = [
+  final List<Widget> _screens = [
     DriverDashboardScreen(),
     DriverStudentsScreen(),
     DriverMapScreen(),
     DriverPinAttendanceScreen(),
-    DriverCalenderScreen(),
-    
+    DriverCalendarScreen(),
   ];
 
- final List<Map<String, dynamic>> _navItems = [
+  final List<Map<String, dynamic>> _navItems = [
     {
       'selectedIcon': Icons.dashboard,
       'unselectedIcon': Icons.dashboard_outlined,
@@ -76,13 +74,11 @@ class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar> wit
     },
   ];
 
-
   void _onNavItemTapped(int index) {
     setState(() => _currentIndex = index);
   }
 
-
-    @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],

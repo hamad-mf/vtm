@@ -53,6 +53,13 @@ class _AdminNotificationScreenState extends State<AdminNotificationScreen> {
             );
           }
         }
+        await FirebaseFirestore.instance.collection('notifications').add({
+          'targetRole': selectedRole,
+          'title': titleController.text.trim(),
+          'body': bodyController.text.trim(),
+          'timestamp': FieldValue.serverTimestamp(),
+          'date': DateTime.now().toIso8601String().substring(0, 10),
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Notification sent to all $selectedRole users'),
