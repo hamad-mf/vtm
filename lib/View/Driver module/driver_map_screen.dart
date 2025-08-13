@@ -19,6 +19,14 @@ class DriverMapScreen extends StatefulWidget {
 }
 
 class _DriverMapScreenState extends State<DriverMapScreen> {
+  bool showCustomDriverMarker = false;
+
+  void toggleDriverMarker() {
+    setState(() {
+      showCustomDriverMarker = !showCustomDriverMarker;
+    });
+  }
+
   String formatDistance(double meters) {
     if (meters >= 1000) {
       return "${(meters / 1000).toStringAsFixed(2)} km";
@@ -594,7 +602,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
         Polyline(
           polylineId: const PolylineId('route'),
           points: points,
-          color: Colors.blue,
+          color: Colors.red,
           width: 6, // Increased width for better visibility
           patterns: [], // Solid line (no dashes)
           jointType: JointType.round, // Smooth joints
@@ -611,6 +619,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
 
   // Add at the top of _DriverMapScreenState class
   bool isTestingMode = false; // 🧪 SET TO FALSE FOR PRODUCTION!
+  bool showDriverMarker = false;
 
   // Test coordinates - update these and hot reload
   LatLng testLocation = LatLng(10.192474, 76.173253);
@@ -747,30 +756,29 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     setState(() {
       currentDriverPosition = location;
 
-      markers.removeWhere(
-        (marker) => marker.markerId.value == 'current_driver',
-      );
-      markers.add(
-        Marker(
-          markerId: const MarkerId('current_driver'),
-          position: location,
-          infoWindow: InfoWindow(
-            title: 'Your Current Location',
-            snippet:
-                'Lat: ${location.latitude.toStringAsFixed(6)}\nLng: ${location.longitude.toStringAsFixed(6)}',
+      // Remove existing driver marker
+      markers.removeWhere((m) => m.markerId.value == 'current_driver');
+
+      // Only add marker if showCustomDriverMarker is true
+      if (showCustomDriverMarker) {
+        markers.add(
+          Marker(
+            markerId: const MarkerId('current_driver'),
+            position: location,
+            infoWindow: InfoWindow(
+              title: 'Your Current Location',
+              snippet:
+                  'Lat: ${location.latitude.toStringAsFixed(6)}\nLng: ${location.longitude.toStringAsFixed(6)}',
+            ),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              BitmapDescriptor.hueOrange,
+            ),
           ),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueOrange,
-          ),
-        ),
-      );
+        );
+      }
     });
 
-    // 🔥 FIX: Check if map controller is ready before animating
     try {
-      log(
-        'Moving camera to current location: ${location.latitude}, ${location.longitude}',
-      );
       mapController
           .animateCamera(CameraUpdate.newLatLngZoom(location, 18))
           .then((_) {

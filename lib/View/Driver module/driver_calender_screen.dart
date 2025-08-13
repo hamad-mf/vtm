@@ -156,6 +156,24 @@ class _DriverCalendarScreenState extends State<DriverCalendarScreen> {
       appBar: AppBar(
         title: const Text('Smart Calendar'),
         backgroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: "Reload Attendance Data",
+            onPressed: () async {
+              // Optional: show a loading indicator in UI
+              await _fetchAttendanceData();
+              // If a day was already selected, also refresh its extra counts
+              if (_selectedDay != null) {
+                await _fetchExtraCounts(_formatDate(_selectedDay!));
+              }
+              // Show feedback
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Calendar data refreshed.')),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
