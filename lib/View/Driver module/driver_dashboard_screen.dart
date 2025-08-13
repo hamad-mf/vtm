@@ -306,10 +306,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                   StreamBuilder<QuerySnapshot>(
                                     stream:
                                         FirebaseFirestore.instance
-                                            .collection('students')
+                                            .collection('notifications')
                                             .where(
-                                              'assignedDriverId',
-                                              isEqualTo: currentUid,
+                                              'targetRole',
+                                              isEqualTo: "driver",
                                             )
                                             .snapshots(),
                                     builder: (context, snapshot) {

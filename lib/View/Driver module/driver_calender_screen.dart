@@ -1,107 +1,228 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 class DriverCalendarScreen extends StatefulWidget {
-  const DriverCalendarScreen({super.key});
+  const DriverCalendarScreen({Key? key}) : super(key: key);
 
   @override
   State<DriverCalendarScreen> createState() => _DriverCalendarScreenState();
 }
 
 class _DriverCalendarScreenState extends State<DriverCalendarScreen> {
+  final driverId = FirebaseAuth.instance.currentUser!.uid;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  final driverId = FirebaseAuth.instance.currentUser!.uid;
+
+  Map<String, Map<String, String>> _dayStatus = {};
+
+  String _morningStatus = 'No record';
+  String _eveningStatus = 'No record';
+  int _studentCount = 0;
+  int _notificationCount = 0;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Smart Calendar")),
-      body: Column(
-        children: [
-          TableCalendar(
-            focusedDay: _focusedDay,
-            firstDay: DateTime.utc(2024, 1, 1),
-            lastDay: DateTime.utc(2031, 1, 1),
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            onDaySelected: (selected, focused) {
-              setState(() {
-                _selectedDay = selected;
-                _focusedDay = focused;
-              });
-            },
-          ),
-          if (_selectedDay != null)
-            Expanded(child: _buildDayDetails(_selectedDay!)),
-        ],
+  void initState() {
+    super.initState();
+    _fetchAttendanceData();
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('yyyy-MM-dd').format(date);
+  }
+
+  Future<void> _fetchAttendanceData() async {
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('driverAttendance')
+            .where('driverId', isEqualTo: driverId)
+            .get();
+
+    final Map<String, Map<String, String>> statusMap = {};
+    for (var doc in snapshot.docs) {
+      final dateStr = doc['date'] as String;
+      final session = doc['session'] as String;
+      final status = doc['status'] as String;
+
+      statusMap.putIfAbsent(dateStr, () => {});
+      statusMap[dateStr]![session] = status;
+    }
+
+    setState(() {
+      _dayStatus = statusMap;
+    });
+  }
+
+  Future<void> _fetchExtraCounts(String dateStr) async {
+    final notificationSnap =
+        await FirebaseFirestore.instance
+            .collection('notifications')
+            .where('targetRole', isEqualTo: 'driver')
+            .where('date', isEqualTo: dateStr)
+            .get();
+
+    final studentSnap =
+        await FirebaseFirestore.instance
+            .collection('studentAttendance')
+            .where('driverId', isEqualTo: driverId)
+            .where('date', isEqualTo: dateStr)
+            .get();
+
+    setState(() {
+      _notificationCount = notificationSnap.docs.length;
+      _studentCount = studentSnap.docs.length;
+    });
+  }
+
+  Color _getDayColor(Map<String, String>? sessions) {
+    if (sessions == null || sessions.isEmpty) return Colors.grey.shade600;
+
+    final morning = sessions['morning'];
+    final evening = sessions['evening'];
+
+    if (morning == 'holiday' || evening == 'holiday') {
+      return Colors.grey.shade200;
+    }
+    if (morning == 'present' && evening == 'present') {
+      return Colors.green.shade700;
+    }
+    if ((morning == 'leave' || morning == 'absent') &&
+        (evening == 'leave' || evening == 'absent')) {
+      return Colors.red.shade900;
+    }
+
+    return Colors.grey;
+  }
+
+  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
+    setState(() {
+      _selectedDay = selectedDay;
+      _focusedDay = focusedDay;
+    });
+
+    String dateStr = _formatDate(selectedDay);
+    final sessions = _dayStatus[dateStr];
+
+    setState(() {
+      _morningStatus = sessions?['morning'] ?? 'No record';
+      _eveningStatus = sessions?['evening'] ?? 'No record';
+    });
+
+    await _fetchExtraCounts(dateStr);
+  }
+
+  Widget _buildDayCell(DateTime day, {required bool isSelected}) {
+    String dateStr = _formatDate(day);
+    final sessions = _dayStatus[dateStr];
+    Color bg = _getDayColor(sessions);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: bg,
+        shape: BoxShape.circle,
+        border: isSelected ? Border.all(color: Colors.black, width: 2) : null,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '${day.day}',
+        style: TextStyle(
+          color:
+              (bg != Colors.white && bg != Colors.grey.shade200)
+                  ? Colors.white
+                  : Colors.black,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
       ),
     );
   }
 
-  Widget _buildDayDetails(DateTime date) {
-    String dateStr = date.toIso8601String().substring(0, 10);
+  Widget _buildLegendItem(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 16, height: 16, color: color),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
+    );
+  }
 
-    return FutureBuilder(
-      future: Future.wait([
-        FirebaseFirestore.instance
-            .collection('driverAttendance')
-            .where('driverId', isEqualTo: driverId)
-            .where('date', isEqualTo: dateStr)
-            .get(),
-        FirebaseFirestore.instance
-            .collection('studentAttendance')
-            .where('driverId', isEqualTo: driverId)
-            .where('date', isEqualTo: dateStr)
-            .get(),
-        FirebaseFirestore.instance
-            .collection('driverLeave')
-            .where('driverId', isEqualTo: driverId)
-            .where('date', isEqualTo: dateStr)
-            .get(),
-        FirebaseFirestore.instance
-            .collection('notifications')
-            .where('targetRole', isEqualTo: 'driver')
-            .where('date', isEqualTo: dateStr)
-            .get(),
-      ]),
-      builder: (context, AsyncSnapshot<List<QuerySnapshot>> snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-        final driverAtt = snapshot.data![0];
-        final studentAtt = snapshot.data![1];
-        final leaveDocs = snapshot.data![2];
-        final notifDocs = snapshot.data![3];
-
-        return ListView(
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Smart Calendar'),
+        backgroundColor: Colors.white,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
           children: [
-            ListTile(
-              title: const Text("Driver Attendance"),
-              subtitle: Text(driverAtt.docs.isEmpty
-                  ? "No record"
-                  : driverAtt.docs.map((d) => "${d['session']} ✅").join(", ")),
+            TableCalendar(
+              firstDay: DateTime.utc(2020, 1, 1),
+              lastDay: DateTime.utc(2030, 12, 31),
+              focusedDay: _focusedDay,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              onDaySelected: _onDaySelected,
+              calendarFormat: CalendarFormat.month,
+              headerStyle: const HeaderStyle(
+                formatButtonVisible: true,
+                titleCentered: true,
+              ),
+              calendarBuilders: CalendarBuilders(
+                defaultBuilder: (context, day, focusedDay) {
+                  return _buildDayCell(day, isSelected: false);
+                },
+                selectedBuilder: (context, day, focusedDay) {
+                  return _buildDayCell(day, isSelected: true);
+                },
+                todayBuilder: (context, day, focusedDay) {
+                  return _buildDayCell(
+                    day,
+                    isSelected: isSameDay(day, _selectedDay),
+                  );
+                },
+              ),
             ),
+            const SizedBox(height: 16),
+            const Text(
+              'Driver Attendance',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            Text('Morning: $_morningStatus'),
+            Text('Evening: $_eveningStatus'),
+            const SizedBox(height: 12),
             ListTile(
               title: const Text("Students Travelled"),
-              subtitle: Text("${studentAtt.docs.length}"),
+              subtitle: Text("$_studentCount"),
+              leading: const Icon(Icons.people),
             ),
-            if (leaveDocs.docs.isNotEmpty)
-              ListTile(
-                title: const Text("Leave"),
-                subtitle: Text(leaveDocs.docs.first['remark']),
+            ListTile(
+              title: const Text("Total Notifications"),
+              subtitle: Text("$_notificationCount"),
+              leading: const Icon(Icons.notifications),
+            ),
+            const SizedBox(height: 8),
+            // Legend at bottom
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  _buildLegendItem(Colors.green.shade700, "Both Present"),
+                  _buildLegendItem(Colors.red.shade900, "Both Leave/Absent"),
+                  _buildLegendItem(Colors.grey.shade200, "Holiday"),
+                  _buildLegendItem(Colors.grey.shade600, "No Record"),
+                  _buildLegendItem(Colors.grey, "Mixed Status"),
+                ],
               ),
-            if (notifDocs.docs.isNotEmpty)
-              ListTile(
-                title: const Text("Notifications on this day"),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: notifDocs.docs.map((n) =>
-                      Text("${n['title']}: ${n['body']}")).toList(),
-                ),
-              ),
+            ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 }
