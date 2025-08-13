@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:visibility_detector/visibility_detector.dart';
 
 class DriverMapScreen extends StatefulWidget {
   const DriverMapScreen({super.key});
@@ -17,6 +19,25 @@ class DriverMapScreen extends StatefulWidget {
 }
 
 class _DriverMapScreenState extends State<DriverMapScreen> {
+  String formatDistance(double meters) {
+    if (meters >= 1000) {
+      return "${(meters / 1000).toStringAsFixed(2)} km";
+    } else {
+      return "${meters.toStringAsFixed(0)} m";
+    }
+  }
+
+  String formatDuration(int seconds) {
+    final d = Duration(seconds: seconds);
+    if (d.inHours > 0) {
+      return "${d.inHours}h ${d.inMinutes % 60}m";
+    } else {
+      return "${d.inMinutes} min";
+    }
+  }
+
+  double totalDistanceMeters = 0;
+  int totalDurationSeconds = 0;
   late GoogleMapController mapController;
   late Timer locationUpdateTimer;
 
@@ -30,6 +51,9 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
   List<LatLng> studentDestinations = [];
   bool isRouteLoaded = false;
   bool isLocationServiceEnabled = false;
+
+  // ⬇️ Add this new variable to track permission status
+  bool hasLocationPermission = false;
 
   // Firebase
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -48,6 +72,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
   @override
   void initState() {
     super.initState();
+    log('DriverMapScreen: initState called');
     initializeDriver();
   }
 
@@ -59,32 +84,116 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     }
 
     await _requestLocationPermissions();
-    await _fetchDriverData();
-    if (assignedRouteId != null) {
-      await _fetchRouteData();
-      await _fetchStudentDestinations();
-      await _buildRouteWithDestinations();
-      _startLocationTracking();
-    } else {
-      _showError('No route assigned to this driver');
+
+    // ⬇️ Only proceed if we have location permission
+    if (hasLocationPermission) {
+      await _fetchDriverData();
+      if (assignedRouteId != null) {
+        await _fetchRouteData();
+        await _fetchStudentDestinations();
+        await _buildRouteWithDestinations();
+        _startLocationTracking();
+      } else {
+        _showError('No route assigned to this driver');
+      }
     }
   }
 
+  // ⬇️ Modified to update permission status and show dialog if needed
   Future<void> _requestLocationPermissions() async {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
 
-    if (permission == LocationPermission.deniedForever) {
-      _showError('Location permissions are permanently denied');
+    if (permission == LocationPermission.deniedForever ||
+        permission == LocationPermission.denied) {
+      setState(() {
+        hasLocationPermission = false;
+      });
+      _showLocationPermissionDialog();
       return;
     }
 
     isLocationServiceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!isLocationServiceEnabled) {
-      _showError('Location services are disabled');
+      setState(() {
+        hasLocationPermission = false;
+      });
+      _showLocationPermissionDialog();
+      return;
     }
+
+    setState(() {
+      hasLocationPermission = true;
+    });
+  }
+
+  // ⬇️ Add this new method to show the permission dialog
+  void _showLocationPermissionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must click retry button
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.location_off, color: Colors.red),
+              SizedBox(width: 8),
+              Text(
+                'Location Permission Required',
+                style: TextStyle(fontSize: 15.sp),
+              ),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This app needs location permission to track your bus and show your route.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Please allow location permission to continue.',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close dialog
+                await _requestLocationPermissions(); // Try again
+                if (!isLocationServiceEnabled) {
+                  // Location services are still off. Prompt user to open settings.
+                  await Geolocator.openLocationSettings();
+                }
+                // If permission granted, continue initialization
+                if (hasLocationPermission) {
+                  await _fetchDriverData();
+                  if (assignedRouteId != null) {
+                    await _fetchRouteData();
+                    await _fetchStudentDestinations();
+                    await _buildRouteWithDestinations();
+                    _startLocationTracking();
+                  } else {
+                    _showError('No route assigned to this driver');
+                  }
+                }
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _fetchDriverData() async {
@@ -286,6 +395,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
 
       if (data['status'] == 'OK') {
         final routes = data['routes'] as List;
+
         if (routes.isNotEmpty) {
           final route = routes[0];
 
@@ -296,6 +406,17 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
           // Also get detailed step-by-step polylines for maximum accuracy
           final legs = route['legs'] as List;
           List<LatLng> detailedPoints = [];
+          double distanceMeters = 0;
+          int durationSeconds = 0;
+          for (var leg in legs) {
+            distanceMeters += (leg['distance']['value'] as num).toDouble();
+            durationSeconds += (leg['duration']['value'] as num).toInt();
+          }
+
+          setState(() {
+            totalDistanceMeters = distanceMeters;
+            totalDurationSeconds = durationSeconds;
+          });
 
           for (var leg in legs) {
             final steps = leg['steps'] as List;
@@ -485,33 +606,91 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     });
   }
 
-int countdown = 20;
-Timer? countdownTimer;
+  int countdown = 20;
+  Timer? countdownTimer;
 
-void _startLocationTracking() {
-  if (!isLocationServiceEnabled) return;
+  // Add at the top of _DriverMapScreenState class
+  bool isTestingMode = false; // 🧪 SET TO FALSE FOR PRODUCTION!
 
-  log('Starting location tracking...');
-  _getCurrentLocationAndUpdate();
+  // Test coordinates - update these and hot reload
+  LatLng testLocation = LatLng(10.192474, 76.173253);
 
-  // Update every 20 seconds
-  locationUpdateTimer = Timer.periodic(const Duration(seconds: 20), (timer) async {
-    await _getCurrentLocationAndUpdate();
-    setState(() {
-      countdown = 20; // reset countdown after location update
-    });
-  });
+  void _startLocationTracking() {
+    if (!isLocationServiceEnabled && !isTestingMode) return;
 
-  // Countdown timer (UI only)
-  countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-    if (countdown > 0) {
-      setState(() {
-        countdown--;
+    log('Starting location tracking...');
+
+    if (isTestingMode) {
+      log('🧪 TESTING MODE ACTIVE');
+      _updateTestLocation(); // Initial marker update right away
+
+      // Continuous simulated movement every 5 seconds
+      locationUpdateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+        _updateTestLocation(); // This will now cause immediate UI updates
+        setState(() {
+          countdown = 5;
+        });
       });
-    }
-  });
-}
 
+      // Countdown for display
+      countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (countdown > 0) {
+          setState(() {
+            countdown--;
+          });
+        }
+      });
+      return;
+    }
+
+    // 🚀 Production code — unchanged
+    log('🚀 PRODUCTION MODE ACTIVE');
+    _getCurrentLocationAndUpdate();
+    locationUpdateTimer = Timer.periodic(const Duration(seconds: 20), (
+      timer,
+    ) async {
+      await _getCurrentLocationAndUpdate();
+      setState(() {
+        countdown = 20;
+      });
+    });
+    countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (countdown > 0) {
+        setState(() {
+          countdown--;
+        });
+      }
+    });
+  }
+
+  void _updateTestLocation() {
+    log(
+      '🧪 Using test location: ${testLocation.latitude}, ${testLocation.longitude}',
+    );
+
+    // Update Firebase with simulated position
+    _updateLocationInFirebase(testLocation);
+
+    // Update map marker and force rebuild immediately
+    setState(() {
+      currentDriverPosition = testLocation;
+      markers.removeWhere((m) => m.markerId.value == 'current_driver');
+      markers.add(
+        Marker(
+          markerId: const MarkerId('current_driver'),
+          position: testLocation,
+          infoWindow: InfoWindow(
+            title: 'Simulated Location',
+            snippet:
+                'Lat: ${testLocation.latitude}, Lng: ${testLocation.longitude}',
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueOrange,
+          ),
+        ),
+      );
+    });
+  }
 
   Future<void> _getCurrentLocationAndUpdate() async {
     try {
@@ -587,20 +766,22 @@ void _startLocationTracking() {
       );
     });
 
-    // Log camera movement
-    log(
-      'Moving camera to current location: ${location.latitude}, ${location.longitude}',
-    );
-
-    // Move camera to current location
-    mapController
-        .animateCamera(CameraUpdate.newLatLng(location))
-        .then((_) {
-          log('Camera moved successfully to current location');
-        })
-        .catchError((error) {
-          log('Error moving camera: $error');
-        });
+    // 🔥 FIX: Check if map controller is ready before animating
+    try {
+      log(
+        'Moving camera to current location: ${location.latitude}, ${location.longitude}',
+      );
+      mapController
+          .animateCamera(CameraUpdate.newLatLngZoom(location, 18))
+          .then((_) {
+            log('✅ Camera moved successfully to current location');
+          })
+          .catchError((error) {
+            log('❌ Error moving camera: $error');
+          });
+    } catch (e) {
+      log('❌ Camera animation failed: $e');
+    }
   }
 
   List<LatLng> _samplePolylinePoints(List<LatLng> allPoints, int targetCount) {
@@ -669,184 +850,235 @@ void _startLocationTracking() {
     log('🚨 Error shown to user: $message');
   }
 
-
-
-
-
-
-
   @override
   void dispose() {
     locationUpdateTimer.cancel();
+    countdownTimer?.cancel(); // ⬇️ Add null check for countdown timer
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Driver Navigation'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => initializeDriver(),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          if (isRouteLoaded)
-            GoogleMap(
-              initialCameraPosition:
-                  routePoints.isNotEmpty
-                      ? CameraPosition(target: routePoints.first, zoom: 13)
-                      : const CameraPosition(target: LatLng(0, 0), zoom: 13),
-              onMapCreated: (controller) {
-                mapController = controller;
-                log('Google Map created successfully');
-              },
-              onCameraMove: (CameraPosition position) {
-                // Log camera movements (optional - can be verbose)
-                // log('Camera moved to: ${position.target.latitude}, ${position.target.longitude}, zoom: ${position.zoom}');
-              },
-              onCameraIdle: () {
-                // Log when camera stops moving
-                mapController.getVisibleRegion().then((bounds) {
-                  log(
-                    'Camera idle. Visible region: ${bounds.southwest} to ${bounds.northeast}',
-                  );
-                });
-              },
-              onTap: (LatLng tappedLocation) {
-                // Log tapped locations on map
-                log(
-                  'Map tapped at: ${tappedLocation.latitude}, ${tappedLocation.longitude}',
-                );
-              },
-              markers: markers,
-              polylines: polylines,
-              myLocationEnabled: true,
-              myLocationButtonEnabled: true,
-              zoomControlsEnabled: true,
-              mapType: MapType.normal,
-            )
-          else
-            const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Loading route data...', style: TextStyle(fontSize: 16)),
-                ],
+    return VisibilityDetector(
+      key: Key('driver-map-visibility'),
+      onVisibilityChanged: (info) {
+        if (info.visibleFraction == 0) {
+          // Not visible!
+          locationUpdateTimer.cancel();
+          countdownTimer?.cancel();
+        } else {
+          // Visible again, restart timers if needed
+          if (locationUpdateTimer.isActive == false) {
+            _startLocationTracking();
+          }
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Driver Navigation'),
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+          actions: [
+            if (isTestingMode) // Only show in testing mode
+              IconButton(
+                icon: const Icon(Icons.location_on),
+                onPressed: () => _updateTestLocation(), // 🔥 Manual trigger
               ),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => initializeDriver(),
             ),
-
-          // Status panel
-          if (isRouteLoaded)
-            Positioned(
-              bottom: 20,
-              left: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
+          ],
+        ),
+        body: Stack(
+          children: [
+            // ⬇️ Only show map if we have permission and route is loaded
+            if (hasLocationPermission && isRouteLoaded)
+              GoogleMap(
+                initialCameraPosition:
+                    routePoints.isNotEmpty
+                        ? CameraPosition(target: routePoints.first, zoom: 18)
+                        : const CameraPosition(target: LatLng(0, 0), zoom: 18),
+                onMapCreated: (controller) {
+                  mapController = controller;
+                  log('Google Map created successfully');
+                },
+                onCameraMove: (CameraPosition position) {
+                  // Log camera movements (optional - can be verbose)
+                  // log('Camera moved to: ${position.target.latitude}, ${position.target.longitude}, zoom: ${position.zoom}');
+                },
+                onCameraIdle: () {
+                  // Log when camera stops moving
+                  mapController.getVisibleRegion().then((bounds) {
+                    log(
+                      'Camera idle. Visible region: ${bounds.southwest} to ${bounds.northeast}',
+                    );
+                  });
+                },
+                onTap: (LatLng tappedLocation) {
+                  // Log tapped locations on map
+                  log(
+                    'Map tapped at: ${tappedLocation.latitude}, ${tappedLocation.longitude}',
+                  );
+                },
+                markers: markers,
+                polylines: polylines,
+                myLocationEnabled: true,
+                myLocationButtonEnabled: true,
+                zoomControlsEnabled: true,
+                mapType: MapType.normal,
+              )
+            // ⬇️ Show loading screen if permission granted but route not loaded
+            else if (hasLocationPermission && !isRouteLoaded)
+              const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Loading route data...',
+                      style: TextStyle(fontSize: 16),
                     ),
                   ],
                 ),
+              )
+            // ⬇️ Show permission message if no permission
+            else
+              const Center(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Icon(Icons.location_off, size: 64, color: Colors.red),
+                    SizedBox(height: 16),
                     Text(
-                      'Route: ${routeData?['routeName'] ?? 'Unknown'}',
-                      style: const TextStyle(
+                      'Location Permission Required',
+                      style: TextStyle(
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text('Students: ${studentDestinations.length}'),
-                    Text('Route Points: ${routePoints.length}'),
+                    SizedBox(height: 8),
+                    Text(
+                      'Please allow location access to use the navigation',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
 
-
-                     // ⬇️ Add countdown text here
-    Text(
-      'Next update in: ${countdown}s',
-      style: const TextStyle(fontSize: 14, color: Colors.blueGrey),
-    ),
-                    if (currentDriverPosition != null) ...[
-                      Text(
-                        'Current Location:',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
+            // Status panel - only show if permission granted and route loaded
+            if (hasLocationPermission && isRouteLoaded)
+              Positioned(
+                bottom: 20,
+                left: 20,
+                right: 20,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
                       ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Distance: ${formatDistance(totalDistanceMeters)}'),
+                      Text('ETA: ${formatDuration(totalDurationSeconds)}'),
                       Text(
-                        'Lat: ${currentDriverPosition!.latitude.toStringAsFixed(6)}',
+                        'Route: ${routeData?['routeName'] ?? 'Unknown'}',
                         style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      Text('Students: ${studentDestinations.length}'),
+                      Text('Route Points: ${routePoints.length}'),
+
+                      // ⬇️ Add countdown text here
                       Text(
-                        'Lng: ${currentDriverPosition!.longitude.toStringAsFixed(6)}',
+                        'Next update in: ${countdown}s',
                         style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                          fontSize: 14,
+                          color: Colors.blueGrey,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          if (currentDriverPosition != null) {
-                            // Log current location to console
-                            log('=== MANUAL LOCATION LOG ===');
-                            log('Current Screen Location:');
-                            log('Latitude: ${currentDriverPosition!.latitude}');
-                            log(
-                              'Longitude: ${currentDriverPosition!.longitude}',
-                            );
-                            log(
-                              'Formatted: ${currentDriverPosition!.latitude.toStringAsFixed(6)}, ${currentDriverPosition!.longitude.toStringAsFixed(6)}',
-                            );
-                            log(
-                              'Google Maps Link: https://maps.google.com/?q=${currentDriverPosition!.latitude},${currentDriverPosition!.longitude}',
-                            );
-                            log('========================');
-
-                            // Also show in UI
-                            _showError('Location logged to console');
-                          }
-                        },
-                        icon: const Icon(Icons.location_on, size: 16),
-                        label: const Text('Log Location'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
+                      if (currentDriverPosition != null) ...[
+                        Text(
+                          'Current Location:',
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        Text(
+                          'Lat: ${currentDriverPosition!.latitude.toStringAsFixed(6)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
                           ),
                         ),
-                      ),
-                    ] else
-                      const Text(
-                        'Getting current location...',
-                        style: TextStyle(fontSize: 12, color: Colors.orange),
-                      ),
-                  ],
+                        Text(
+                          'Lng: ${currentDriverPosition!.longitude.toStringAsFixed(6)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        if (isTestingMode)
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              if (currentDriverPosition != null) {
+                                // Log current location to console
+                                log('=== MANUAL LOCATION LOG ===');
+                                log('Current Screen Location:');
+                                log(
+                                  'Latitude: ${currentDriverPosition!.latitude}',
+                                );
+                                log(
+                                  'Longitude: ${currentDriverPosition!.longitude}',
+                                );
+                                log(
+                                  'Formatted: ${currentDriverPosition!.latitude.toStringAsFixed(6)}, ${currentDriverPosition!.longitude.toStringAsFixed(6)}',
+                                );
+                                log(
+                                  'Google Maps Link: https://maps.google.com/?q=${currentDriverPosition!.latitude},${currentDriverPosition!.longitude}',
+                                );
+                                log('========================');
+
+                                // Also show in UI
+                                _showError('Location logged to console');
+                              }
+                            },
+                            icon: const Icon(Icons.location_on, size: 16),
+                            label: const Text('Log Location'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                            ),
+                          ),
+                      ] else
+                        const Text(
+                          'Getting current location...',
+                          style: TextStyle(fontSize: 12, color: Colors.orange),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

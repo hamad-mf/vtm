@@ -20,7 +20,6 @@ class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar>
   @override
   void initState() {
     super.initState();
-
     _currentIndex = widget.initialIndex;
   }
 
@@ -81,7 +80,10 @@ class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: Container(
         height: 65.h,
         decoration: BoxDecoration(

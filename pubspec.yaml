@@ -54,6 +54,7 @@ dependencies:
   qr_flutter: ^4.0.0
   qr_code_scanner_plus: ^2.0.10+1
   firebase_database: ^11.3.10
+  visibility_detector: ^0.3.3
 
 dev_dependencies:
   flutter_test:
