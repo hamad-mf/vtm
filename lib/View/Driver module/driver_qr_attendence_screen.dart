@@ -19,7 +19,6 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
 
   String sessionMode = "Auto"; // Auto / Morning / Evening
 
-  // ✅ Check if student belongs to this driver
   Future<bool> _isStudentAssigned(String studentId) async {
     final doc =
         await FirebaseFirestore.instance
@@ -29,7 +28,6 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
     return doc.exists && doc.data()?['assignedDriverId'] == widget.driverId;
   }
 
-  // ✅ Prevent duplicates
   Future<bool> _isDuplicateAttendance(String studentId, String session) async {
     String today = DateTime.now().toIso8601String().substring(0, 10);
     final query =
@@ -43,7 +41,6 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
     return query.docs.isNotEmpty;
   }
 
-  // ✅ Confirm and Mark Attendance
   Future<void> _confirmAndMark(String studentId) async {
     String session;
     if (sessionMode == "Auto") {
@@ -52,15 +49,16 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
       session = sessionMode;
     }
 
-    // Prevent duplicates
     if (await _isDuplicateAttendance(studentId, session)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Already marked for $session today!")),
+        SnackBar(
+          backgroundColor: const Color(0xFF7B61A1),
+          content: Text("Already marked for $session today!"),
+        ),
       );
       return;
     }
 
-    // Show confirm dialog with student name if available
     final studentDoc =
         await FirebaseFirestore.instance
             .collection('students')
@@ -73,6 +71,9 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
           context: context,
           builder:
               (_) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
                 title: Text("Mark Attendance?"),
                 content: Text("Student: $name\nSession: $session"),
                 actions: [
@@ -81,6 +82,12 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
                     child: Text("Cancel"),
                   ),
                   ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7B61A1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
                     onPressed: () => Navigator.pop(context, true),
                     child: Text("Confirm"),
                   ),
@@ -91,7 +98,6 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
 
     if (!confirmed) return;
 
-    // Mark attendance
     await FirebaseFirestore.instance.collection('studentAttendance').add({
       'studentId': studentId,
       'driverId': widget.driverId,
@@ -101,9 +107,12 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("Attendance marked successfully!")));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF7B61A1),
+        content: Text("Attendance marked successfully!"),
+      ),
+    );
   }
 
   void _onQRViewCreated(QRViewController controller) {
@@ -119,9 +128,12 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
       }
 
       if (!await _isStudentAssigned(studentId)) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Not assigned to this driver!")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            content: Text("Not assigned to this driver!"),
+          ),
+        );
         isScanning = true;
         return;
       }
@@ -140,47 +152,97 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = const Color(0xFF7B61A1);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("Scan Student QR"),
-        actions: [
-          PopupMenuButton<String>(
-            initialValue: sessionMode,
-            onSelected: (val) => setState(() => sessionMode = val),
-            itemBuilder:
-                (context) => [
-                  PopupMenuItem(value: "Auto", child: Text("Auto Detect")),
-                  PopupMenuItem(value: "Morning", child: Text("Morning")),
-                  PopupMenuItem(value: "Evening", child: Text("Evening")),
-                ],
+        leading: InkWell(
+          onTap: () {
+            Navigator.pop(context);
+          },
+          child: Icon(Icons.arrow_back, color: Colors.white),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF7B61A1), Color(0xFF937BBF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ],
+        ),
+        title: const Text(
+          "Scan Student QR",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
+        elevation: 4,
       ),
       body: Column(
         children: [
+          // QR Scanner View
           Expanded(
             flex: 4,
             child: QRView(
               key: qrKey,
               onQRViewCreated: _onQRViewCreated,
               overlay: QrScannerOverlayShape(
-                // ✅ Square frame
-                borderColor: Colors.green,
-                borderRadius: 8,
-                borderLength: 30,
+                borderColor: themeColor,
+                borderRadius: 12,
+                borderLength: 35,
                 borderWidth: 8,
                 cutOutSize: 250,
               ),
             ),
           ),
-          Expanded(
-            flex: 1,
-            child: Container(
-              alignment: Alignment.center,
-              child: Text(
-                "Mode: $sessionMode — Hold QR inside the frame",
-                style: TextStyle(fontSize: 16),
-              ),
+
+          // Session Selection
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            color: Colors.grey.shade100,
+            child: Column(
+              children: [
+                const Text(
+                  "Select Session Mode",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children:
+                      ["Auto", "Morning", "Evening"].map((mode) {
+                        final isSelected = sessionMode == mode;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: ChoiceChip(
+                            label: Text(
+                              mode,
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : themeColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            selected: isSelected,
+                            onSelected: (_) {
+                              setState(() => sessionMode = mode);
+                            },
+                            selectedColor: themeColor,
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              side: BorderSide(color: themeColor),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Mode: $sessionMode — Hold QR inside the frame to scan",
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
         ],

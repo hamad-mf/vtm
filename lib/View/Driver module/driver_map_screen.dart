@@ -867,6 +867,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final baseColor = const Color(0xFF7B60A0);
     return VisibilityDetector(
       key: Key('driver-map-visibility'),
       onVisibilityChanged: (info) {
@@ -884,7 +885,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Driver Navigation'),
-          backgroundColor: Colors.blue,
+          backgroundColor: baseColor,
           foregroundColor: Colors.white,
           actions: [
             if (isTestingMode) // Only show in testing mode
@@ -1010,35 +1011,37 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text('Students: ${studentDestinations.length}'),
-                      Text('Route Points: ${routePoints.length}'),
+
+                      // Text('Route Points: ${routePoints.length}'),
 
                       // ⬇️ Add countdown text here
-                      Text(
-                        'Next update in: ${countdown}s',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.blueGrey,
+                      if (showCustomDriverMarker)
+                        Text(
+                          'Next update in: ${countdown}s',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.blueGrey,
+                          ),
                         ),
-                      ),
                       if (currentDriverPosition != null) ...[
-                        Text(
-                          'Current Location:',
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        Text(
-                          'Lat: ${currentDriverPosition!.latitude.toStringAsFixed(6)}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        Text(
-                          'Lng: ${currentDriverPosition!.longitude.toStringAsFixed(6)}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
+                        // Text(
+                        //   'Current Location:',
+                        //   style: const TextStyle(fontWeight: FontWeight.w500),
+                        // ),
+                        // Text(
+                        //   'Lat: ${currentDriverPosition!.latitude.toStringAsFixed(6)}',
+                        //   style: const TextStyle(
+                        //     fontSize: 12,
+                        //     color: Colors.grey,
+                        //   ),
+                        // ),
+                        // Text(
+                        //   'Lng: ${currentDriverPosition!.longitude.toStringAsFixed(6)}',
+                        //   style: const TextStyle(
+                        //     fontSize: 12,
+                        //     color: Colors.grey,
+                        //   ),
+                        // ),
                         const SizedBox(height: 4),
                         if (isTestingMode)
                           ElevatedButton.icon(

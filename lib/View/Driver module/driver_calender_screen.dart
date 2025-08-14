@@ -122,7 +122,8 @@ class _DriverCalendarScreenState extends State<DriverCalendarScreen> {
       decoration: BoxDecoration(
         color: bg,
         shape: BoxShape.circle,
-        border: isSelected ? Border.all(color: Colors.black, width: 2) : null,
+        border:
+            isSelected ? Border.all(color: Colors.deepPurple, width: 2) : null,
       ),
       alignment: Alignment.center,
       child: Text(
@@ -142,7 +143,14 @@ class _DriverCalendarScreenState extends State<DriverCalendarScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 16, height: 16, color: color),
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
         const SizedBox(width: 4),
         Text(label, style: const TextStyle(fontSize: 12)),
       ],
@@ -152,22 +160,31 @@ class _DriverCalendarScreenState extends State<DriverCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('Smart Calendar'),
-        backgroundColor: Colors.white,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF7B60A0), Color(0xFF937BBF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: const Text(
+          'Smart Calendar',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             tooltip: "Reload Attendance Data",
             onPressed: () async {
-              // Optional: show a loading indicator in UI
               await _fetchAttendanceData();
-              // If a day was already selected, also refresh its extra counts
               if (_selectedDay != null) {
                 await _fetchExtraCounts(_formatDate(_selectedDay!));
               }
-              // Show feedback
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Calendar data refreshed.')),
               );
@@ -188,6 +205,10 @@ class _DriverCalendarScreenState extends State<DriverCalendarScreen> {
               headerStyle: const HeaderStyle(
                 formatButtonVisible: true,
                 titleCentered: true,
+                titleTextStyle: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF7B60A0),
+                ),
               ),
               calendarBuilders: CalendarBuilders(
                 defaultBuilder: (context, day, focusedDay) {
@@ -205,25 +226,74 @@ class _DriverCalendarScreenState extends State<DriverCalendarScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Driver Attendance',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF7B60A0), Color(0xFF937BBF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 6,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Driver Attendance',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Morning: $_morningStatus',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  Text(
+                    'Evening: $_eveningStatus',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
             ),
-            Text('Morning: $_morningStatus'),
-            Text('Evening: $_eveningStatus'),
             const SizedBox(height: 12),
-            ListTile(
-              title: const Text("Students Travelled"),
-              subtitle: Text("$_studentCount"),
-              leading: const Icon(Icons.people),
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ListTile(
+                leading: const Icon(Icons.people, color: Color(0xFF7B60A0)),
+                title: const Text("Students Travelled"),
+                subtitle: Text("$_studentCount"),
+              ),
             ),
-            ListTile(
-              title: const Text("Total Notifications"),
-              subtitle: Text("$_notificationCount"),
-              leading: const Icon(Icons.notifications),
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: ListTile(
+                leading: const Icon(
+                  Icons.notifications,
+                  color: Color(0xFF7B60A0),
+                ),
+                title: const Text("Total Notifications"),
+                subtitle: Text("$_notificationCount"),
+              ),
             ),
             const SizedBox(height: 8),
-            // Legend at bottom
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Wrap(

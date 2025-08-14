@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
@@ -162,9 +161,8 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
 
                 SizedBox(height: 20.h),
 
-                // Intermediate Stops
-                _buildStopsSection(),
-
+                // Intermediate Stops 
+                // _buildStopsSection(),
                 SizedBox(height: 20.h),
 
                 // Timings Section
@@ -537,8 +535,8 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                 ),
               ),
               Spacer(),
+
               // Debug button - remove this in production
-           
             ],
           ),
           SizedBox(height: 16.h),
@@ -676,116 +674,119 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
               }
 
               return Container(
-  decoration: BoxDecoration(
-    color: Color(0xffF8F9FA),
-    borderRadius: BorderRadius.circular(12.r),
-  ),
-  child: DropdownButtonHideUnderline(
-    child: DropdownButton2<String?>(  // Note: String? to allow null
-      isExpanded: true,
-      hint: Text(
-        "Select Driver (${drivers.length} available)",
-        style: TextStyle(
-          fontSize: 14.sp,
-          color: Colors.grey.shade600,
-        ),
-      ),
-      items: [
-        DropdownMenuItem<String?>(
-          value: null,  // Explicitly null
-          child: Text(
-            "No driver assigned",
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontStyle: FontStyle.italic,
-              color: Colors.grey.shade600,
-            ),
-          ),
-        ),
-        ...drivers.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return DropdownMenuItem<String?>(  // String? to match the type
-            value: doc.id,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "${data['name'] ?? 'Unknown'} (${data['employeeId'] ?? 'No ID'})",
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
+                decoration: BoxDecoration(
+                  color: Color(0xffF8F9FA),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton2<String?>(
+                    // Note: String? to allow null
+                    isExpanded: true,
+                    hint: Text(
+                      "Select Driver (${drivers.length} available)",
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null, // Explicitly null
+                        child: Text(
+                          "No driver assigned",
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                      ...drivers.map((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        return DropdownMenuItem<String?>(
+                          // String? to match the type
+                          value: doc.id,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                "${data['name'] ?? 'Unknown'} (${data['employeeId'] ?? 'No ID'})",
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                "License: ${data['licenseType'] ?? 'N/A'} | Bus: ${data['assignedBusId'] ?? 'N/A'}",
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                    value: selectedDriverId,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedDriverId = value;
+                        if (value != null) {
+                          final driverDoc = drivers.firstWhere(
+                            (doc) => doc.id == value,
+                          );
+                          selectedDriverName =
+                              (driverDoc.data()
+                                  as Map<String, dynamic>)['name'];
+                          print(
+                            'Selected driver: $selectedDriverName (ID: $selectedDriverId)',
+                          );
+                        } else {
+                          selectedDriverName = null;
+                          print('No driver selected');
+                        }
+                      });
+                    },
+                    buttonStyleData: ButtonStyleData(
+                      height: 56.h,
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12.r),
+                        color: Color(0xffF8F9FA),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                    ),
+                    dropdownStyleData: DropdownStyleData(
+                      maxHeight: 250.h,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12.r),
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                    ),
+                    menuItemStyleData: MenuItemStyleData(
+                      height: 60.h,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 8.h,
+                      ),
+                    ),
+                    iconStyleData: IconStyleData(
+                      icon: Icon(Icons.arrow_drop_down),
+                      iconSize: 24.w,
+                      iconEnabledColor: Color(0xff7B61A1),
+                    ),
                   ),
                 ),
-                Text(
-                  "License: ${data['licenseType'] ?? 'N/A'} | Bus: ${data['assignedBusId'] ?? 'N/A'}",
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ],
-      value: selectedDriverId,
-      onChanged: (value) {
-        setState(() {
-          selectedDriverId = value;
-          if (value != null) {
-            final driverDoc = drivers.firstWhere(
-              (doc) => doc.id == value,
-            );
-            selectedDriverName =
-                (driverDoc.data() as Map<String, dynamic>)['name'];
-            print(
-              'Selected driver: $selectedDriverName (ID: $selectedDriverId)',
-            );
-          } else {
-            selectedDriverName = null;
-            print('No driver selected');
-          }
-        });
-      },
-      buttonStyleData: ButtonStyleData(
-        height: 56.h,
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12.r),
-          color: Color(0xffF8F9FA),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-      ),
-      dropdownStyleData: DropdownStyleData(
-        maxHeight: 250.h,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12.r),
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-      ),
-      menuItemStyleData: MenuItemStyleData(
-        height: 60.h,
-        padding: EdgeInsets.symmetric(
-          horizontal: 16.w,
-          vertical: 8.h,
-        ),
-      ),
-      iconStyleData: IconStyleData(
-        icon: Icon(Icons.arrow_drop_down),
-        iconSize: 24.w,
-        iconEnabledColor: Color(0xff7B61A1),
-      ),
-    ),
-  ),
-);
+              );
             },
           ),
         ],
@@ -1137,77 +1138,80 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
     );
   }
 
-Widget buildDropdownField(
-  String label,
-  String field,
-  IconData icon,
-  List<String> options,
-) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: TextStyle(
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w500,
-          color: Color(0xff333333),
-        ),
-      ),
-      SizedBox(height: 8.h),
-      DropdownButtonFormField<String>(
-        // Only set value if it exists in options
-        value: _formData[field] != null && options.contains(_formData[field])
-            ? _formData[field]
-            : null,
-        decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Color(0xff7B61A1), size: 20.w),
-          hintText: "Select $label",
-          filled: true,
-          fillColor: Color(0xffF8F9FA),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.r),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.r),
-            borderSide: BorderSide(color: Color(0xff4CAF50), width: 2),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.r),
-            borderSide: BorderSide(color: Colors.red.shade300, width: 1),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.r),
-            borderSide: BorderSide(color: Colors.red, width: 2),
+  Widget buildDropdownField(
+    String label,
+    String field,
+    IconData icon,
+    List<String> options,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: Color(0xff333333),
           ),
         ),
-        items: options.map((String value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: Text(value, style: TextStyle(fontSize: 14.sp)),
-          );
-        }).toList(),
-        validator: (value) =>
-            value == null || value.isEmpty ? '$label is required' : null,
-        onChanged: (value) {
-          // Save data immediately when user selects
-          if (value != null) {
-            setState(() {
+        SizedBox(height: 8.h),
+        DropdownButtonFormField<String>(
+          // Only set value if it exists in options
+          value:
+              _formData[field] != null && options.contains(_formData[field])
+                  ? _formData[field]
+                  : null,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: Color(0xff7B61A1), size: 20.w),
+            hintText: "Select $label",
+            filled: true,
+            fillColor: Color(0xffF8F9FA),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Color(0xff4CAF50), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.red.shade300, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: Colors.red, width: 2),
+            ),
+          ),
+          items:
+              options.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value, style: TextStyle(fontSize: 14.sp)),
+                );
+              }).toList(),
+          validator:
+              (value) =>
+                  value == null || value.isEmpty ? '$label is required' : null,
+          onChanged: (value) {
+            // Save data immediately when user selects
+            if (value != null) {
+              setState(() {
+                _formData[field] = value;
+              });
+            }
+          },
+          onSaved: (value) {
+            // Also save when form is saved
+            if (value != null) {
               _formData[field] = value;
-            });
-          }
-        },
-        onSaved: (value) {
-          // Also save when form is saved
-          if (value != null) {
-            _formData[field] = value;
-          }
-        },
-      ),
-    ],
-  );
-}
+            }
+          },
+        ),
+      ],
+    );
+  }
 
   void _addStop() {
     showDialog(
