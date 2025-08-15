@@ -4,6 +4,7 @@ import 'package:vignan_transportation_management/View/Driver%20module/driver_cal
 import 'package:vignan_transportation_management/View/Driver%20module/driver_dashboard_screen.dart';
 import 'package:vignan_transportation_management/View/Driver%20module/driver_map_screen.dart';
 import 'package:vignan_transportation_management/View/Driver%20module/driver_pin_attendence_screen.dart';
+import 'package:vignan_transportation_management/View/Driver%20module/driver_profile_screen.dart';
 import 'package:vignan_transportation_management/View/Driver%20module/driver_students_screen.dart';
 
 class DriverCustomBottomNavbar extends StatefulWidget {
@@ -37,7 +38,7 @@ class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar>
     DriverStudentsScreen(),
     DriverMapScreen(),
     DriverPinAttendanceScreen(),
-    DriverCalendarScreen(),
+    DriverProfileScreen(),
   ];
 
   final List<Map<String, dynamic>> _navItems = [
@@ -54,8 +55,8 @@ class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar>
       'color': lightPurple,
     },
     {
-      'selectedIcon': Icons.directions_bus,
-      'unselectedIcon': Icons.directions_bus_outlined,
+      'selectedIcon': Icons.map,
+      'unselectedIcon': Icons.map_outlined,
       'label': 'Map',
       'color': accentPurple,
     },
@@ -66,8 +67,8 @@ class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar>
       'color': darkPurple,
     },
     {
-      'selectedIcon': Icons.settings,
-      'unselectedIcon': Icons.settings_outlined,
+      'selectedIcon': Icons.person,
+      'unselectedIcon': Icons.person_outline,
       'label': 'calender',
       'color': darkPurple,
     },
@@ -80,10 +81,7 @@ class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         height: 65.h,
         decoration: BoxDecoration(

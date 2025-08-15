@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 
@@ -162,6 +163,12 @@ class _DriverCalendarScreenState extends State<DriverCalendarScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+        ),
         elevation: 0,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -308,6 +315,7 @@ class _DriverCalendarScreenState extends State<DriverCalendarScreen> {
                 ],
               ),
             ),
+            SizedBox(height: 30.h),
           ],
         ),
       ),

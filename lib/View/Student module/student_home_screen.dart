@@ -5,7 +5,8 @@ import 'package:vignan_transportation_management/Controllers/Common%20Controller
 import 'package:vignan_transportation_management/View/Student%20module/student_qe_screen.dart';
 
 class StudentHomeScreen extends StatefulWidget {
-  const StudentHomeScreen({super.key});
+  final bool isGraceActive;
+  const StudentHomeScreen({super.key, this.isGraceActive = false});
 
   @override
   State<StudentHomeScreen> createState() => _StudentHomeScreenState();
@@ -14,8 +15,9 @@ class StudentHomeScreen extends StatefulWidget {
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Scaffold(  
       appBar: AppBar(
+        title: Text(widget.isGraceActive ? "grace" : "non grace"),
         actions: [
           IconButton(
             onPressed: () async {

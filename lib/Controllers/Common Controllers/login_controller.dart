@@ -11,6 +11,7 @@ import 'package:vignan_transportation_management/View/Driver%20module/driver_cus
 
 import 'package:vignan_transportation_management/View/Parent%20module/parent_home_screen.dart';
 import 'package:vignan_transportation_management/View/Staff%20Module/staff_home_screen.dart';
+import 'package:vignan_transportation_management/View/Student%20module/profile_locked_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_home_screen.dart';
 
 class LoginController with ChangeNotifier {
@@ -144,11 +145,43 @@ class LoginController with ChangeNotifier {
               );
               break;
             case 'student':
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => StudentHomeScreen()),
-                (route) => false,
-              );
+              // Fetch student's paymentStatus from Firestore
+              DocumentSnapshot studentDoc =
+                  await _firestore.collection('students').doc(uid).get();
+
+              if (!studentDoc.exists) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Student data not found")),
+                );
+                return;
+              }
+
+              String paymentStatus = studentDoc['paymentStatus'] ?? '';
+
+              if (paymentStatus == "Paid" || paymentStatus == "Grace") {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => StudentHomeScreen(
+                          isGraceActive: paymentStatus == "Grace",
+                        ),
+                  ),
+                  (route) => false,
+                );
+              } else if (paymentStatus == "Pending" ||
+                  paymentStatus == "Overdue") {
+                // Navigate to profile locked screen
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProfileLockedScreen()),
+                  (route) => false,
+                );
+              } else {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("Unknown fee status")));
+              }
               break;
             case 'staff':
               Navigator.pushAndRemoveUntil(
