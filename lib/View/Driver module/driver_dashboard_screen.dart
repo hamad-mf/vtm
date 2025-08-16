@@ -44,18 +44,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            onPressed: () async {
-              SharedPreferences prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('isdriverLoggedIn', false);
-              final authController = Provider.of<LoginController>(
-                context,
-                listen: false,
-              );
-              authController.signOut(context);
-            },
-            icon: const Icon(Icons.exit_to_app, color: Colors.white),
-          ),
+          // IconButton(
+          //   onPressed: () async {
+              
+          //   },
+          //   icon: const Icon(Icons.exit_to_app, color: Colors.white),
+          // ),
         ],
       ),
       body: SingleChildScrollView(

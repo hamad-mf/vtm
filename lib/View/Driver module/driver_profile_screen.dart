@@ -4,6 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vignan_transportation_management/Controllers/Common%20Controllers/login_controller.dart';
 
 import 'package:vignan_transportation_management/View/Driver%20module/driver_calender_screen.dart';
 
@@ -419,10 +422,14 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
             ElevatedButton(
               onPressed: () async {
                 try {
-                  await FirebaseAuth.instance.signOut();
-                  Navigator.pop(context); // Close dialog
-                  // Navigate to login screen or handle logout
-                  // Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  await prefs.setBool('isdriverLoggedIn', false);
+                  final authController = Provider.of<LoginController>(
+                    context,
+                    listen: false,
+                  );
+                  authController.signOut(context);
                 } catch (e) {
                   log('Logout error: $e');
                   ScaffoldMessenger.of(context).showSnackBar(

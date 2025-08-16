@@ -1,4 +1,7 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class DriverPinAttendanceScreen extends StatefulWidget {
@@ -127,6 +130,8 @@ class _DriverPinAttendanceScreenState extends State<DriverPinAttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // final currentUid = FirebaseAuth.instance.currentUser!.uid;
+    // log(currentUid);
     return Scaffold(
       appBar: AppBar(
         title: Text(

@@ -63,13 +63,13 @@ class _DriverCustomBottomNavbarState extends State<DriverCustomBottomNavbar>
     {
       'selectedIcon': Icons.bar_chart,
       'unselectedIcon': Icons.bar_chart_outlined,
-      'label': 'attendence',
+      'label': 'Attendence',
       'color': darkPurple,
     },
     {
       'selectedIcon': Icons.person,
       'unselectedIcon': Icons.person_outline,
-      'label': 'calender',
+      'label': 'Profile',
       'color': darkPurple,
     },
   ];
