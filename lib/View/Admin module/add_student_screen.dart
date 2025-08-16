@@ -21,6 +21,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 String? _selectedDriverName;
   final _latController = TextEditingController();
   final _lngController = TextEditingController();
+  DateTime? _feeExpiryDate;
 
   @override
   void dispose() {
@@ -185,6 +186,10 @@ String? _selectedDriverName;
                         "paymentStatus",
                         Icons.payment_outlined,
                       ),
+                      SizedBox(height: 16.h,),
+                       _buildDateField("fee Expiry Date", Icons.calendar_today, (date) {
+                  _feeExpiryDate = date;
+                }),
                     ],
                   ),
                 ),
@@ -225,6 +230,7 @@ String? _selectedDriverName;
             _formData['assignedDriverName'] = _selectedDriverName ?? "";
 
                                 await provider.addStudent(
+                                  feeExpiryDate: _feeExpiryDate!,
                                                   assignedDriverId: _formData['assignedDriverId']!,
                 assignedDriverName: _formData['assignedDriverName']!,
                                   context: context,
@@ -273,6 +279,39 @@ String? _selectedDriverName;
       ),
     );
   }
+
+
+Widget _buildDateField(String label, IconData icon, Function(DateTime) onPicked) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now().add(Duration(days: 365)),
+          firstDate: DateTime.now(),
+          lastDate: DateTime.now().add(Duration(days: 365 * 10)),
+        );
+        if (picked != null) setState(() => onPicked(picked));
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        decoration: BoxDecoration(
+          color: Color(0xffF8F9FA),
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Color(0xff7B61A1)),
+            SizedBox(width: 16.w),
+            Text(label, style: TextStyle(color: Colors.grey.shade400)),
+            Spacer(),
+            Icon(Icons.calendar_today, color: Colors.grey.shade400, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+
 
   // drivers Dropdown - Gets Data From Firestore
   Widget _buildDriversDropdown() {

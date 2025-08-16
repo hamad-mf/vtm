@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 
 class StudentController with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -26,9 +26,8 @@ class StudentController with ChangeNotifier {
     await _firestore.collection('students').doc(studentId).update(updatedData);
   }
 
-  Future<void> addStudent({
-    required String assignedDriverId,
-    required String assignedDriverName,
+ Future<void> addStudent({
+    required BuildContext context,
     required String name,
     required String email,
     required String password,
@@ -36,71 +35,209 @@ class StudentController with ChangeNotifier {
     required String mobileNumber,
     required String address,
     required String assignedRoute,
+    required String assignedDriverId,
+    required String assignedDriverName,
     required String paymentStatus,
-    required String destinationLatitude, // NEW
-    required String destinationLongitude, // NEW
-    required BuildContext context,
+    required String destinationLatitude,
+    required String destinationLongitude,
+    required DateTime feeExpiryDate,
   }) async {
     isLoading = true;
-    error = null;
     notifyListeners();
-    var querySnapshot =
-        await _firestore
-            .collection('students')
-            .where('registrationNumber', isEqualTo: registrationNumber)
-            .get();
-    if (querySnapshot.docs.isNotEmpty) {
-      // Show error: duplicate registration number
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Register number is already in use")),
+
+    try {
+      // Create user account
+      final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
       );
+
+      String uid = userCredential.user!.uid;
+
+      // Add student data to Firestore
+      await _firestore.collection('students').doc(uid).set({
+        'name': name,
+        'email': email,
+        'registrationNumber': registrationNumber,
+        'mobileNumber': mobileNumber,
+        'address': address,
+        'assignedRoute': assignedRoute,
+        'assignedDriverId': assignedDriverId,
+        'assignedDriverName': assignedDriverName,
+        'paymentStatus': paymentStatus,
+        'destinationLatitude': double.parse(destinationLatitude),
+        'destinationLongitude': double.parse(destinationLongitude),
+        'feeExpiryDate': Timestamp.fromDate(feeExpiryDate),
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Add user role
+      await _firestore.collection('roles').doc(uid).set({
+        'role': 'student',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Student added successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error adding student: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
       isLoading = false;
       notifyListeners();
-    } else {
-      // Proceed to add student or parent
+    }
+  }
 
-      try {
-        UserCredential result = await _auth.createUserWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-        String uid = result.user!.uid;
+  /// Checks if student's fee has expired and updates payment status accordingly
+  static Future<String> checkAndUpdateFeeStatus(String studentUid) async {
+    try {
+      final FirebaseFirestore firestore = FirebaseFirestore.instance;
+      
+      // Get student document
+      DocumentSnapshot studentDoc = await firestore
+          .collection('students')
+          .doc(studentUid)
+          .get();
 
-        await _firestore.collection('roles').doc(uid).set({'role': 'student'});
-
-        await _firestore.collection('students').doc(uid).set({
-          'assignedDriverId': assignedDriverId,
-          'assignedDriverName': assignedDriverName,
-          'studentId': uid,
-          'name': name,
-          'email': email,
-          'registrationNumber': registrationNumber,
-          'mobileNumber': mobileNumber,
-          'address': address,
-          'assignedRoute': assignedRoute,
-          'paymentStatus': paymentStatus,
-          'destinationLatitude': double.tryParse(destinationLatitude) ?? 0.0,
-          'destinationLongitude': double.tryParse(destinationLongitude) ?? 0.0,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Student added successfully"),
-            backgroundColor: Color(0xff4CAF50),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10.r),
-            ),
-          ),
-        );
-        Navigator.pop(context);
-      } on FirebaseAuthException catch (e) {
-        error = e.message;
-      } catch (e) {
-        error = 'Something went wrong: $e';
-      } finally {
-        isLoading = false;
-        notifyListeners();
+      if (!studentDoc.exists) {
+        return 'Pending'; // Default status if document doesn't exist
       }
+
+      final data = studentDoc.data() as Map<String, dynamic>;
+      final Timestamp? feeExpiryTimestamp = data['feeExpiryDate'];
+      final String currentPaymentStatus = data['paymentStatus'] ?? 'Pending';
+
+      if (feeExpiryTimestamp == null) {
+        // If no expiry date is set, return current status
+        return currentPaymentStatus;
+      }
+
+      final DateTime feeExpiryDate = feeExpiryTimestamp.toDate();
+      final DateTime now = DateTime.now();
+      final DateTime today = DateTime(now.year, now.month, now.day);
+      final DateTime expiry = DateTime(feeExpiryDate.year, feeExpiryDate.month, feeExpiryDate.day);
+
+      String newStatus = currentPaymentStatus;
+
+      // Fee expiry logic
+      if (today.isAfter(expiry)) {
+        // Fee has expired
+        if (currentPaymentStatus == 'Paid') {
+          newStatus = 'Overdue';
+        } else if (currentPaymentStatus == 'Grace') {
+          newStatus = 'Overdue';
+        }
+        // If already Pending or Overdue, keep as is
+      } else {
+        // Fee hasn't expired yet
+        final int daysUntilExpiry = expiry.difference(today).inDays;
+        
+        if (daysUntilExpiry <= 7 && currentPaymentStatus == 'Paid') {
+          // Grace period: 7 days before expiry, change Paid to Grace
+          newStatus = 'Grace';
+        }
+        // If Pending and not expired, keep as Pending
+        // If Grace and not expired, keep as Grace
+        // If Overdue but not expired (admin manually set), keep as Overdue
+      }
+
+      // Update status in Firestore if it changed
+      if (newStatus != currentPaymentStatus) {
+        await firestore.collection('students').doc(studentUid).update({
+          'paymentStatus': newStatus,
+          'statusUpdatedAt': FieldValue.serverTimestamp(),
+        });
+        
+        print('Updated payment status for $studentUid: $currentPaymentStatus → $newStatus');
+      }
+
+      return newStatus;
+
+    } catch (e) {
+      print('Error checking fee status: $e');
+      return 'Pending'; // Default fallback status
+    }
+  }
+
+  /// Gets student payment status with real-time fee checking
+  static Future<Map<String, dynamic>> getStudentStatusInfo(String studentUid) async {
+    try {
+      final String currentStatus = await checkAndUpdateFeeStatus(studentUid);
+      
+      // Get updated student data
+      final DocumentSnapshot studentDoc = await FirebaseFirestore.instance
+          .collection('students')
+          .doc(studentUid)
+          .get();
+
+      if (!studentDoc.exists) {
+        return {
+          'paymentStatus': 'Pending',
+          'feeExpiryDate': null,
+          'daysUntilExpiry': null,
+          'isGraceActive': false,
+        };
+      }
+
+      final data = studentDoc.data() as Map<String, dynamic>;
+      final Timestamp? feeExpiryTimestamp = data['feeExpiryDate'];
+      
+      DateTime? feeExpiryDate;
+      int? daysUntilExpiry;
+      
+      if (feeExpiryTimestamp != null) {
+        feeExpiryDate = feeExpiryTimestamp.toDate();
+        final DateTime now = DateTime.now();
+        final DateTime today = DateTime(now.year, now.month, now.day);
+        final DateTime expiry = DateTime(feeExpiryDate.year, feeExpiryDate.month, feeExpiryDate.day);
+        
+        daysUntilExpiry = expiry.difference(today).inDays;
+      }
+
+      return {
+        'paymentStatus': currentStatus,
+        'feeExpiryDate': feeExpiryDate,
+        'daysUntilExpiry': daysUntilExpiry,
+        'isGraceActive': currentStatus == 'Grace',
+      };
+
+    } catch (e) {
+      print('Error getting student status info: $e');
+      return {
+        'paymentStatus': 'Pending',
+        'feeExpiryDate': null,
+        'daysUntilExpiry': null,
+        'isGraceActive': false,
+      };
+    }
+  }
+
+  /// Batch update all students' fee statuses (useful for scheduled tasks)
+  static Future<void> batchUpdateAllStudentFeeStatuses() async {
+    try {
+      final QuerySnapshot studentsQuery = await FirebaseFirestore.instance
+          .collection('students')
+          .get();
+
+      final List<Future<void>> updateTasks = studentsQuery.docs.map((doc) async {
+        await checkAndUpdateFeeStatus(doc.id);
+      }).toList();
+
+      await Future.wait(updateTasks);
+      print('Batch update completed for ${studentsQuery.docs.length} students');
+
+    } catch (e) {
+      print('Error in batch update: $e');
     }
   }
 }

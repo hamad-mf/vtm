@@ -1,18 +1,20 @@
 import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/student_controller.dart';
 import 'package:vignan_transportation_management/View/Admin%20module/admin_custom_bottom_navbar.dart';
 import 'package:vignan_transportation_management/View/Common%20Screens/profile_selection_screen.dart';
 import 'package:vignan_transportation_management/View/Driver%20module/driver_custom_bottom_navbar.dart';
-
 import 'package:vignan_transportation_management/View/Parent%20module/parent_home_screen.dart';
 import 'package:vignan_transportation_management/View/Staff%20Module/staff_home_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/profile_locked_screen.dart';
-import 'package:vignan_transportation_management/View/Student%20module/student_home_screen.dart';
+import 'package:vignan_transportation_management/View/Student%20module/student_custom_bottom_navbar_screen.dart';
+
+// Import your screen files here
+// import 'package:vignan_transportation_management/View/Admin%20module/admin_custom_bottom_navbar.dart';
+// ... other imports
 
 class LoginController with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -29,18 +31,17 @@ class LoginController with ChangeNotifier {
         (route) => false,
       );
     } catch (e) {
-      // Handle errors if any
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.red,
-          content: Text("Error Siginin out"),
+          content: Text("Error Signing out"),
         ),
       );
     }
   }
 
   onLogin({
-    required String enteredRegNo, // Parent must supply this during login form
+    required String enteredRegNo,
     required String email,
     required String password,
     required BuildContext context,
@@ -71,24 +72,21 @@ class LoginController with ChangeNotifier {
           if (passedrole != role) {
             isloading = false;
             notifyListeners();
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text("Invalid credentials")));
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Invalid credentials")));
             return;
           }
 
           // 3. If parent, perform StudentRegNo verification
           if (role == "parent") {
-            // Fetch the parent doc to get linked studentRegNo
             DocumentSnapshot parentDoc =
                 await _firestore.collection('parents').doc(uid).get();
 
             if (!parentDoc.exists) {
               isloading = false;
               notifyListeners();
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text("Parent data not found")));
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Parent data not found")));
               return;
             }
 
@@ -102,7 +100,6 @@ class LoginController with ChangeNotifier {
                   content: Text("Student Registration No Verification Failed"),
                 ),
               );
-              // Optionally: Sign out immediately.
               await _auth.signOut();
               return;
             }
@@ -145,32 +142,41 @@ class LoginController with ChangeNotifier {
               );
               break;
             case 'student':
-              // Fetch student's paymentStatus from Firestore
-              DocumentSnapshot studentDoc =
-                  await _firestore.collection('students').doc(uid).get();
+              // ENHANCED: Check fee status with expiry logic
+              final statusInfo = await StudentController.getStudentStatusInfo(uid);
+              final String paymentStatus = statusInfo['paymentStatus'];
+              final bool isGraceActive = statusInfo['isGraceActive'];
+              final int? daysUntilExpiry = statusInfo['daysUntilExpiry'];
 
-              if (!studentDoc.exists) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Student data not found")),
-                );
-                return;
-              }
-
-              String paymentStatus = studentDoc['paymentStatus'] ?? '';
+              log("Student payment status: $paymentStatus");
+              log("Days until expiry: $daysUntilExpiry");
+              log("Grace active: $isGraceActive");
 
               if (paymentStatus == "Paid" || paymentStatus == "Grace") {
+                // Show grace period warning if applicable
+                if (isGraceActive && daysUntilExpiry != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "Grace Period: Fee expires in $daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'}",
+                      ),
+                      backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 5),
+                    ),
+                  );
+                }
+
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (_) => StudentHomeScreen(
-                          isGraceActive: paymentStatus == "Grace",
-                        ),
+                    builder: (_) => StudentCustomBottomNavbarScreen(
+                      initialIndex: 0,
+                      isGraceActive: isGraceActive,
+                    ),
                   ),
                   (route) => false,
                 );
-              } else if (paymentStatus == "Pending" ||
-                  paymentStatus == "Overdue") {
+              } else if (paymentStatus == "Pending" || paymentStatus == "Overdue") {
                 // Navigate to profile locked screen
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -178,9 +184,8 @@ class LoginController with ChangeNotifier {
                   (route) => false,
                 );
               } else {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text("Unknown fee status")));
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Unknown fee status: $paymentStatus")));
               }
               break;
             case 'staff':
@@ -198,23 +203,26 @@ class LoginController with ChangeNotifier {
               );
               break;
             default:
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text("Unknown role: $role")));
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Unknown role: $role")));
           }
         } else {
           isloading = false;
           notifyListeners();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("User role not found")));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text("User role not found")));
         }
       }
     } on FirebaseAuthException catch (e) {
       log(e.code.toString());
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("${e.message}")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("${e.message}")));
+      isloading = false;
+      notifyListeners();
+    } catch (e) {
+      log("Unexpected error: $e");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("An unexpected error occurred")));
       isloading = false;
       notifyListeners();
     }
