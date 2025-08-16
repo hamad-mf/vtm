@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vignan_transportation_management/Controllers/Common%20Controllers/login_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/student_controller.dart';
+import 'package:vignan_transportation_management/View/Student%20module/student_custom_bottom_navbar_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_qe_screen.dart';
+import 'package:vignan_transportation_management/View/Student%20module/student_route_details.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   final bool isGraceActive;
@@ -60,7 +62,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     Color statusColor;
     IconData statusIcon;
     String statusText;
-    
+
     switch (paymentStatus) {
       case 'Paid':
         statusColor = Colors.green;
@@ -102,15 +104,19 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 SizedBox(width: 12),
                 Text(
                   'Fee Status',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                Spacer(),
+                IconButton(
+                  onPressed: () {
+                    _showRefreshDialog();
+                  },
+                  icon: Icon(Icons.refresh),
                 ),
               ],
             ),
             SizedBox(height: 16),
-            
+
             // Current Status
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -127,9 +133,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 ),
               ),
             ),
-            
+
             SizedBox(height: 16),
-            
+
             // Fee Expiry Information
             if (feeExpiryDate != null) ...[
               Row(
@@ -138,36 +144,43 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   SizedBox(width: 8),
                   Text(
                     'Fee Expiry Date: ${feeExpiryDate.day}/${feeExpiryDate.month}/${feeExpiryDate.year}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[700],
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                   ),
                 ],
               ),
               SizedBox(height: 8),
-              
+
               // Days until expiry
               if (daysUntilExpiry != null) ...[
                 Row(
                   children: [
                     Icon(
-                      daysUntilExpiry > 0 ? Icons.schedule : Icons.schedule_send,
-                      color: daysUntilExpiry > 7 ? Colors.green : 
-                             daysUntilExpiry > 0 ? Colors.orange : Colors.red,
+                      daysUntilExpiry > 0
+                          ? Icons.schedule
+                          : Icons.schedule_send,
+                      color:
+                          daysUntilExpiry > 7
+                              ? Colors.green
+                              : daysUntilExpiry > 0
+                              ? Colors.orange
+                              : Colors.red,
                       size: 20,
                     ),
                     SizedBox(width: 8),
                     Text(
-                      daysUntilExpiry > 0 
-                        ? '$daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'} until expiry'
-                        : daysUntilExpiry == 0 
+                      daysUntilExpiry > 0
+                          ? '$daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'} until expiry'
+                          : daysUntilExpiry == 0
                           ? 'Fee expires today!'
                           : 'Fee expired ${(-daysUntilExpiry)} day${(-daysUntilExpiry) == 1 ? '' : 's'} ago',
                       style: TextStyle(
                         fontSize: 16,
-                        color: daysUntilExpiry > 7 ? Colors.green[700] : 
-                               daysUntilExpiry > 0 ? Colors.orange[700] : Colors.red[700],
+                        color:
+                            daysUntilExpiry > 7
+                                ? Colors.green[700]
+                                : daysUntilExpiry > 0
+                                ? Colors.orange[700]
+                                : Colors.red[700],
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -175,7 +188,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 ),
               ],
             ],
-            
+
             // Grace period warning
             if (isGraceActive) ...[
               SizedBox(height: 12),
@@ -203,7 +216,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 ),
               ),
             ],
-            
+
             // Action button for overdue/pending payments
             if (paymentStatus == 'Overdue' || paymentStatus == 'Pending') ...[
               SizedBox(height: 16),
@@ -214,11 +227,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     // Navigate to payment screen or show payment dialog
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Please contact administration for fee payment'),
-                        action: SnackBarAction(
-                          label: 'OK',
-                          onPressed: () {},
+                        content: Text(
+                          'Please contact administration for fee payment',
                         ),
+                        action: SnackBarAction(label: 'OK', onPressed: () {}),
                       ),
                     );
                   },
@@ -243,16 +255,18 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.isGraceActive ? "Dashboard - Grace Period" : "Student Dashboard",
+          widget.isGraceActive
+              ? "Dashboard - Grace Period"
+              : "Student Dashboard",
         ),
         backgroundColor: widget.isGraceActive ? Colors.orange : Colors.blue,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            onPressed: () => _showRefreshDialog(),
-            icon: Icon(Icons.refresh),
-            tooltip: 'Refresh Status',
-          ),
+          // IconButton(
+          //   onPressed: () => _showRefreshDialog(),
+          //   icon: Icon(Icons.refresh),
+          //   tooltip: 'Refresh Status',
+          // ),
           IconButton(
             onPressed: () async {
               SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -273,7 +287,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           children: [
             // Fee Status Card
             _buildFeeStatusCard(),
-            
+
             // Quick Actions Card
             Card(
               elevation: 4,
@@ -291,15 +305,41 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       ),
                     ),
                     SizedBox(height: 16),
-                    
+
                     // QR Code Button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          Navigator.push(
+                          Navigator.pushAndRemoveUntil(
                             context,
-                            MaterialPageRoute(builder: (context) => StudentQrScreen()),
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      StudentCustomBottomNavbarScreen(
+                                        initialIndex: 2,
+                                      ),
+                              transitionsBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                                child,
+                              ) {
+                                return SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(1.0, 0.0),
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeInOut,
+                                    ),
+                                  ),
+                                  child: child,
+                                );
+                              },
+                            ),
+                            (route) => false,
                           );
                         },
                         icon: Icon(Icons.qr_code),
@@ -311,16 +351,40 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         ),
                       ),
                     ),
-                    
+
                     SizedBox(height: 12),
-                    
+
                     // Route Info Button (placeholder)
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Route information feature coming soon')),
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      StudentRouteDetails(),
+                              transitionsBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                                child,
+                              ) {
+                                return SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(1.0, 0.0),
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeInOut,
+                                    ),
+                                  ),
+                                  child: child,
+                                );
+                              },
+                            ),
                           );
                         },
                         icon: Icon(Icons.directions_bus),
@@ -330,16 +394,43 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         ),
                       ),
                     ),
-                    
+
                     SizedBox(height: 12),
-                    
+
                     // Profile Button (placeholder)
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Profile feature coming soon')),
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      StudentCustomBottomNavbarScreen(
+                                        initialIndex: 3,
+                                      ),
+                              transitionsBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                                child,
+                              ) {
+                                return SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(1.0, 0.0),
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeInOut,
+                                    ),
+                                  ),
+                                  child: child,
+                                );
+                              },
+                            ),
+                            (route) => false,
                           );
                         },
                         icon: Icon(Icons.person),

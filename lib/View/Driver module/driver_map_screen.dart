@@ -46,7 +46,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
 
   double totalDistanceMeters = 0;
   int totalDurationSeconds = 0;
-  late GoogleMapController mapController;
+   GoogleMapController? mapController;
   late Timer locationUpdateTimer;
 
   // Map display
@@ -779,17 +779,18 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     });
 
     try {
-      mapController
-          .animateCamera(CameraUpdate.newLatLngZoom(location, 18))
-          .then((_) {
-            log('✅ Camera moved successfully to current location');
-          })
-          .catchError((error) {
-            log('❌ Error moving camera: $error');
-          });
-    } catch (e) {
-      log('❌ Camera animation failed: $e');
-    }
+  if (mapController != null) {
+    mapController!.animateCamera(CameraUpdate.newLatLngZoom(location, 18))
+        .then((_) {
+          log('✅ Camera moved successfully to current location');
+        })
+        .catchError((error) {
+          log('❌ Error moving camera: $error');
+        });
+  }
+} catch (e) {
+  log('❌ Camera animation failed: $e');
+}
   }
 
   List<LatLng> _samplePolylinePoints(List<LatLng> allPoints, int targetCount) {
@@ -916,14 +917,13 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
                   // Log camera movements (optional - can be verbose)
                   // log('Camera moved to: ${position.target.latitude}, ${position.target.longitude}, zoom: ${position.zoom}');
                 },
-                onCameraIdle: () {
-                  // Log when camera stops moving
-                  mapController.getVisibleRegion().then((bounds) {
-                    log(
-                      'Camera idle. Visible region: ${bounds.southwest} to ${bounds.northeast}',
-                    );
-                  });
-                },
+               onCameraIdle: () {
+  if (mapController != null) {
+    mapController!.getVisibleRegion().then((bounds) {
+      log('Camera idle. Visible region: ${bounds.southwest} to ${bounds.northeast}');
+    });
+  }
+},
                 onTap: (LatLng tappedLocation) {
                   // Log tapped locations on map
                   log(

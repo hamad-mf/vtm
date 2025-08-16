@@ -18,7 +18,8 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   String? _selectedRouteName;
 
   String? _selectedDriverId;
-String? _selectedDriverName;
+  String? _selectedDriverName;
+
   final _latController = TextEditingController();
   final _lngController = TextEditingController();
   DateTime? _feeExpiryDate;
@@ -186,10 +187,12 @@ String? _selectedDriverName;
                         "paymentStatus",
                         Icons.payment_outlined,
                       ),
-                      SizedBox(height: 16.h,),
-                       _buildDateField("fee Expiry Date", Icons.calendar_today, (date) {
-                  _feeExpiryDate = date;
-                }),
+                      SizedBox(height: 16.h),
+                      _buildDateField("fee Expiry Date", Icons.calendar_today, (
+                        date,
+                      ) {
+                        _feeExpiryDate = date;
+                      }),
                     ],
                   ),
                 ),
@@ -217,22 +220,30 @@ String? _selectedDriverName;
                             onPressed: () async {
                               if (_formKey.currentState!.validate()) {
                                 _formKey.currentState!.save();
+                              _formData['assignedRouteId'] = _selectedRouteId ?? "";
+_formData['assignedRouteName'] = _selectedRouteName ?? "";
+
+
                                 // Set assignedRoute field in _formData to route's name (display) or ID (your choice)
                                 _formData['assignedRoute'] =
                                     _selectedRouteName ?? "";
                                 _formData['destinationLatitude'] =
                                     _latController.text.trim();
                                 _formData['destinationLongitude'] =
-                                    _lngController.text.trim();   
+                                    _lngController.text.trim();
 
-                                     // Add these two new lines to save the driver data
-            _formData['assignedDriverId'] = _selectedDriverId ?? "";
-            _formData['assignedDriverName'] = _selectedDriverName ?? "";
+                                // Add these two new lines to save the driver data
+                                _formData['assignedDriverId'] =
+                                    _selectedDriverId ?? "";
+                                _formData['assignedDriverName'] =
+                                    _selectedDriverName ?? "";
 
                                 await provider.addStudent(
                                   feeExpiryDate: _feeExpiryDate!,
-                                                  assignedDriverId: _formData['assignedDriverId']!,
-                assignedDriverName: _formData['assignedDriverName']!,
+                                  assignedDriverId:
+                                      _formData['assignedDriverId']!,
+                                  assignedDriverName:
+                                      _formData['assignedDriverName']!,
                                   context: context,
                                   name: _formData['name']!,
                                   email: _formData['email']!,
@@ -241,7 +252,10 @@ String? _selectedDriverName;
                                       _formData['registrationNumber']!,
                                   mobileNumber: _formData['mobileNumber']!,
                                   address: _formData['address']!,
-                                  assignedRoute: _formData['assignedRoute']!,
+                                  assignedRouteId:
+                                      _formData['assignedRouteId']!, // ✅ proper ID
+                                  assignedRouteName:
+                                      _formData['assignedRouteName']!, // ✅ readable name
                                   paymentStatus: _formData['paymentStatus']!,
                                   // destination fields injected above
                                   destinationLatitude:
@@ -280,8 +294,11 @@ String? _selectedDriverName;
     );
   }
 
-
-Widget _buildDateField(String label, IconData icon, Function(DateTime) onPicked) {
+  Widget _buildDateField(
+    String label,
+    IconData icon,
+    Function(DateTime) onPicked,
+  ) {
     return InkWell(
       onTap: () async {
         final picked = await showDatePicker(
@@ -310,8 +327,6 @@ Widget _buildDateField(String label, IconData icon, Function(DateTime) onPicked)
       ),
     );
   }
-
-
 
   // drivers Dropdown - Gets Data From Firestore
   Widget _buildDriversDropdown() {
@@ -348,7 +363,7 @@ Widget _buildDateField(String label, IconData icon, Function(DateTime) onPicked)
                 style: TextStyle(color: Colors.grey),
               );
 
-            return DropdownButtonFormField<String>(
+           return DropdownButtonFormField<String>(
               isExpanded: true,
               value: _selectedDriverId,
               decoration: InputDecoration(
@@ -436,52 +451,45 @@ Widget _buildDateField(String label, IconData icon, Function(DateTime) onPicked)
                 style: TextStyle(color: Colors.grey),
               );
 
-            return DropdownButtonFormField<String>(
-              isExpanded: true,
-              value: _selectedRouteId,
-              decoration: InputDecoration(
-                prefixIcon: Icon(
-                  Icons.directions_bus_outlined,
-                  color: Color(0xff7B61A1),
-                ),
-                hintText: "Select Assigned Route",
-                filled: true,
-                fillColor: Color(0xffF8F9FA),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              items:
-                  docs.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final routeName = data['routeName'] ?? doc.id;
-                    return DropdownMenuItem<String>(
-                      value: doc.id,
-                      child: Text(
-                        routeName,
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Color(0xff333333),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-              validator:
-                  (value) =>
-                      value == null || value.isEmpty
-                          ? 'Assigned Route is required'
-                          : null,
-              onChanged: (id) {
-                setState(() {
-                  _selectedRouteId = id!;
-                  // Also capture the display name for later saving to the student document
-                  final doc = docs.firstWhere((doc) => doc.id == id);
-                  final data = doc.data() as Map<String, dynamic>;
-                  _selectedRouteName = data['routeName'] ?? id;
-                });
-              },
-            );
+           return DropdownButtonFormField<String>(
+  isExpanded: true,
+  value: _selectedRouteId, // must match one of the `DropdownMenuItem.value`s
+  decoration: InputDecoration(
+    prefixIcon: Icon(
+      Icons.directions_bus_outlined,
+      color: Color(0xff7B61A1),
+    ),
+    hintText: "Select Assigned Route",
+    filled: true,
+    fillColor: Color(0xffF8F9FA),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12.r),
+      borderSide: BorderSide.none,
+    ),
+  ),
+  items: docs.map((doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final routeName = data['routeName'] ?? doc.id;
+    return DropdownMenuItem<String>(
+      value: doc.id, // ✅ always unique
+      child: Text(
+        routeName,
+        style: TextStyle(fontSize: 14.sp, color: Color(0xff333333)),
+      ),
+    );
+  }).toList(),
+  validator: (value) =>
+      value == null || value.isEmpty ? 'Assigned Route is required' : null,
+  onChanged: (id) {
+    setState(() {
+      _selectedRouteId = id; // ✅ keep doc.id
+      final doc = docs.firstWhere((doc) => doc.id == id);
+      final data = doc.data() as Map<String, dynamic>;
+      _selectedRouteName = data['routeName'] ?? id;
+    });
+  },
+);
+
           },
         ),
       ],
@@ -644,7 +652,7 @@ Widget _buildDateField(String label, IconData icon, Function(DateTime) onPicked)
             ),
           ),
           items:
-              ['Paid', 'Pending', 'Overdue'].map((String value) {
+              ['Paid', 'Pending', 'Overdue', 'Grace'].map((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(

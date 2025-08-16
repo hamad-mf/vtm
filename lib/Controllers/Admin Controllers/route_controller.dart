@@ -29,8 +29,10 @@ class RouteController with ChangeNotifier {
     notifyListeners();
     try {
       final routeRef = _firestore.collection('routes').doc();
+      final routeId = routeRef.id;
 
       final routeData = {
+        'routeId': routeId,
         'routeName': routeName,
         'startPoint': {
           'name': startPointName,
@@ -61,12 +63,12 @@ class RouteController with ChangeNotifier {
 
         await _firestore.collection('drivers').doc(assignedDriverId).update({
           'isAssigned': true,
-          'assignedRoute': routeRef.id
+          'assignedRoute': routeRef.id,
         });
 
         if (busId != null) {
           await _firestore.collection('vehicles').doc(busId).update({
-            'assignedRouteId': routeRef.id
+            'assignedRouteId': routeRef.id,
           });
 
           await routeRef.update({'assignedVehicleId': busId});
@@ -81,7 +83,10 @@ class RouteController with ChangeNotifier {
   }
 
   Future<void> assignDriverToRoute(
-      String routeId, String driverId, String driverName) async {
+    String routeId,
+    String driverId,
+    String driverName,
+  ) async {
     isLoading = true;
     notifyListeners();
     try {
@@ -93,8 +98,7 @@ class RouteController with ChangeNotifier {
         throw Exception('Driver has no assigned vehicle');
       }
 
-      final busDoc =
-          await _firestore.collection('vehicles').doc(busId).get();
+      final busDoc = await _firestore.collection('vehicles').doc(busId).get();
       if (busDoc['assignedRouteId'] != null) {
         throw Exception('Vehicle already assigned to another route');
       }
@@ -103,14 +107,14 @@ class RouteController with ChangeNotifier {
       batch.update(_firestore.collection('routes').doc(routeId), {
         'assignedDriverId': driverId,
         'assignedDriverName': driverName,
-        'assignedVehicleId': busId
+        'assignedVehicleId': busId,
       });
       batch.update(_firestore.collection('drivers').doc(driverId), {
         'isAssigned': true,
-        'assignedRoute': routeId
+        'assignedRoute': routeId,
       });
       batch.update(_firestore.collection('vehicles').doc(busId), {
-        'assignedRouteId': routeId
+        'assignedRouteId': routeId,
       });
 
       await batch.commit();
@@ -134,15 +138,15 @@ class RouteController with ChangeNotifier {
       batch.update(_firestore.collection('routes').doc(routeId), {
         'assignedDriverId': null,
         'assignedDriverName': null,
-        'assignedVehicleId': null
+        'assignedVehicleId': null,
       });
       batch.update(_firestore.collection('drivers').doc(driverId), {
         'isAssigned': false,
-        'assignedRoute': null
+        'assignedRoute': null,
       });
       if (busId != null) {
         batch.update(_firestore.collection('vehicles').doc(busId), {
-          'assignedRouteId': null
+          'assignedRouteId': null,
         });
       }
 
@@ -159,8 +163,7 @@ class RouteController with ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      final routeDoc =
-          await _firestore.collection('routes').doc(routeId).get();
+      final routeDoc = await _firestore.collection('routes').doc(routeId).get();
       if (routeDoc.exists) {
         final data = routeDoc.data() as Map<String, dynamic>;
         final driverId = data['assignedDriverId'];
@@ -169,12 +172,12 @@ class RouteController with ChangeNotifier {
         if (driverId != null) {
           await _firestore.collection('drivers').doc(driverId).update({
             'isAssigned': false,
-            'assignedRoute': null
+            'assignedRoute': null,
           });
         }
         if (vehicleId != null) {
           await _firestore.collection('vehicles').doc(vehicleId).update({
-            'assignedRouteId': null
+            'assignedRouteId': null,
           });
         }
       }
@@ -193,8 +196,7 @@ class RouteController with ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      final routeDoc =
-          await _firestore.collection('routes').doc(routeId).get();
+      final routeDoc = await _firestore.collection('routes').doc(routeId).get();
       if (!routeDoc.exists) {
         error = 'Route not found';
         return;
@@ -215,12 +217,12 @@ class RouteController with ChangeNotifier {
         if (driverId != null) {
           batch.update(_firestore.collection('drivers').doc(driverId), {
             'isAssigned': false,
-            'assignedRoute': null
+            'assignedRoute': null,
           });
         }
         if (vehicleId != null) {
           batch.update(_firestore.collection('vehicles').doc(vehicleId), {
-            'assignedRouteId': null
+            'assignedRouteId': null,
           });
         }
         batch.update(_firestore.collection('routes').doc(routeId), {

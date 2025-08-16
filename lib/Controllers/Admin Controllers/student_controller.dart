@@ -34,7 +34,8 @@ class StudentController with ChangeNotifier {
     required String registrationNumber,
     required String mobileNumber,
     required String address,
-    required String assignedRoute,
+    required String assignedRouteId,
+    required String assignedRouteName,
     required String assignedDriverId,
     required String assignedDriverName,
     required String paymentStatus,
@@ -61,7 +62,7 @@ class StudentController with ChangeNotifier {
         'registrationNumber': registrationNumber,
         'mobileNumber': mobileNumber,
         'address': address,
-        'assignedRoute': assignedRoute,
+        'assignedRoute': assignedRouteName,
         'assignedDriverId': assignedDriverId,
         'assignedDriverName': assignedDriverName,
         'paymentStatus': paymentStatus,
@@ -70,6 +71,7 @@ class StudentController with ChangeNotifier {
         'feeExpiryDate': Timestamp.fromDate(feeExpiryDate),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
+        'assignedRouteId':assignedRouteId
       });
 
       // Add user role
