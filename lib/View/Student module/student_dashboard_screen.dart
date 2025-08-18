@@ -252,6 +252,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+
+      final int? daysUntilExpiry = studentStatusInfo?['daysUntilExpiry'];
+  final String paymentStatus = studentStatusInfo?['paymentStatus'] ?? '';
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -285,6 +290,35 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
+           if (studentStatusInfo?['shouldShowBanner'] == true)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12),
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange, width: 1),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.orange[700]),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Your transport service renewal is due in "
+                      "$daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'}. "
+                      "Please pay to continue enjoying the service.",
+                      style: TextStyle(
+                        color: Colors.orange[800],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // Fee Status Card
             _buildFeeStatusCard(),
 

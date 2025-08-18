@@ -15,10 +15,6 @@ import 'package:vignan_transportation_management/View/Staff%20Module/staff_home_
 import 'package:vignan_transportation_management/View/Student%20module/profile_locked_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_custom_bottom_navbar_screen.dart';
 
-// Import your screen files
-// import 'package:vignan_transportation_management/View/Admin%20module/admin_custom_bottom_navbar.dart';
-// ... other imports
-
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -87,7 +83,7 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
-  /// Handles automatic login for students with fee expiry checking
+  /// UPDATED: Handles automatic login for students with corrected fee expiry checking
   Future<void> _handleStudentAutoLogin() async {
     log("Student already logged in, verifying fee status...");
 
@@ -101,15 +97,17 @@ class _SplashScreenState extends State<SplashScreen> {
     }
 
     try {
-      // Get student status with fee expiry checking
+      // Get student status with corrected fee expiry checking
       final statusInfo = await StudentController.getStudentStatusInfo(uid);
       final String paymentStatus = statusInfo['paymentStatus'];
       final bool isGraceActive = statusInfo['isGraceActive'];
       final int? daysUntilExpiry = statusInfo['daysUntilExpiry'];
+      final bool shouldShowBanner = statusInfo['shouldShowBanner'] ?? false;
 
       log("Auto-login: Student payment status: $paymentStatus");
       log("Auto-login: Days until expiry: $daysUntilExpiry");
       log("Auto-login: Grace active: $isGraceActive");
+      log("Auto-login: Should show banner: $shouldShowBanner");
 
       if (paymentStatus == "Paid" || paymentStatus == "Grace") {
         // Navigate to student dashboard
@@ -122,22 +120,36 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         );
 
-        // Show grace period warning after navigation if applicable
-        if (isGraceActive && daysUntilExpiry != null) {
-          Future.delayed(Duration(milliseconds: 500), () {
-            if (mounted) {
+        // Show appropriate notification after navigation
+        Future.delayed(Duration(milliseconds: 500), () {
+          if (mounted) {
+            if (shouldShowBanner && daysUntilExpiry != null) {
+              // Show 7-day renewal warning (when status is still "Paid")
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    "Grace Period: Fee expires in $daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'}",
+                    "Your transport service renewal is due in $daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'}. Please pay to continue enjoying the service.",
                   ),
                   backgroundColor: Colors.orange,
-                  duration: Duration(seconds: 5),
+                  duration: Duration(seconds: 6),
+                ),
+              );
+            } else if (isGraceActive && daysUntilExpiry != null) {
+              // Show grace period warning (when status is "Grace")
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    "Grace Period Active: Fee expired ${(-daysUntilExpiry)} day${(-daysUntilExpiry) == 1 ? '' : 's'} ago. Please renew to avoid service interruption.",
+                  ),
+                  backgroundColor: Colors.red[600],
+                  duration: Duration(seconds: 6),
                 ),
               );
             }
-          });
-        }
+          }
+        });
+        
+        //zaman is gay
       } else if (paymentStatus == "Pending" || paymentStatus == "Overdue") {
         // Navigate to profile locked screen
         Navigator.of(context).pushReplacement(

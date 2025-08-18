@@ -101,128 +101,139 @@ class StudentController with ChangeNotifier {
   }
 
   /// Checks if student's fee has expired and updates payment status accordingly
-  static Future<String> checkAndUpdateFeeStatus(String studentUid) async {
-    try {
-      final FirebaseFirestore firestore = FirebaseFirestore.instance;
+static Future<String> checkAndUpdateFeeStatus(String studentUid) async {
+  try {
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
+    
+    // Get student document
+    DocumentSnapshot studentDoc = await firestore
+        .collection('students')
+        .doc(studentUid)
+        .get();
+
+    if (!studentDoc.exists) {
+      return 'Pending'; // Default status if document doesn't exist
+    }
+
+    final data = studentDoc.data() as Map<String, dynamic>;
+    final Timestamp? feeExpiryTimestamp = data['feeExpiryDate'];
+    final String currentPaymentStatus = data['paymentStatus'] ?? 'Pending';
+
+    if (feeExpiryTimestamp == null) {
+      // If no expiry date is set, return current status
+      return currentPaymentStatus;
+    }
+
+    final DateTime feeExpiryDate = feeExpiryTimestamp.toDate();
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DateTime expiry = DateTime(feeExpiryDate.year, feeExpiryDate.month, feeExpiryDate.day);
+
+    String newStatus = currentPaymentStatus;
+
+    // CORRECTED Fee expiry logic
+    if (today.isAfter(expiry)) {
+      // Fee has expired - check if still in grace period (10 days after expiry)
+      final int daysAfterExpiry = today.difference(expiry).inDays;
       
-      // Get student document
-      DocumentSnapshot studentDoc = await firestore
-          .collection('students')
-          .doc(studentUid)
-          .get();
-
-      if (!studentDoc.exists) {
-        return 'Pending'; // Default status if document doesn't exist
-      }
-
-      final data = studentDoc.data() as Map<String, dynamic>;
-      final Timestamp? feeExpiryTimestamp = data['feeExpiryDate'];
-      final String currentPaymentStatus = data['paymentStatus'] ?? 'Pending';
-
-      if (feeExpiryTimestamp == null) {
-        // If no expiry date is set, return current status
-        return currentPaymentStatus;
-      }
-
-      final DateTime feeExpiryDate = feeExpiryTimestamp.toDate();
-      final DateTime now = DateTime.now();
-      final DateTime today = DateTime(now.year, now.month, now.day);
-      final DateTime expiry = DateTime(feeExpiryDate.year, feeExpiryDate.month, feeExpiryDate.day);
-
-      String newStatus = currentPaymentStatus;
-
-      // Fee expiry logic
-      if (today.isAfter(expiry)) {
-        // Fee has expired
+      if (daysAfterExpiry <= 10) {
+        // Still within 10-day grace period after expiry
         if (currentPaymentStatus == 'Paid') {
-          newStatus = 'Overdue';
-        } else if (currentPaymentStatus == 'Grace') {
-          newStatus = 'Overdue';
-        }
-        // If already Pending or Overdue, keep as is
-      } else {
-        // Fee hasn't expired yet
-        final int daysUntilExpiry = expiry.difference(today).inDays;
-        
-        if (daysUntilExpiry <= 7 && currentPaymentStatus == 'Paid') {
-          // Grace period: 7 days before expiry, change Paid to Grace
           newStatus = 'Grace';
         }
-        // If Pending and not expired, keep as Pending
-        // If Grace and not expired, keep as Grace
-        // If Overdue but not expired (admin manually set), keep as Overdue
+        // If already Grace, Pending, or Overdue, keep as is during grace period
+      } else {
+        // Grace period has ended (more than 10 days after expiry)
+        newStatus = 'Overdue';
       }
-
-      // Update status in Firestore if it changed
-      if (newStatus != currentPaymentStatus) {
-        await firestore.collection('students').doc(studentUid).update({
-          'paymentStatus': newStatus,
-          'statusUpdatedAt': FieldValue.serverTimestamp(),
-        });
-        
-        print('Updated payment status for $studentUid: $currentPaymentStatus → $newStatus');
+    } else {
+      // Fee hasn't expired yet
+      if (currentPaymentStatus == 'Grace' || currentPaymentStatus == 'Overdue') {
+        // If admin manually set Grace/Overdue but fee hasn't expired, keep as Paid
+        newStatus = 'Paid';
       }
-
-      return newStatus;
-
-    } catch (e) {
-      print('Error checking fee status: $e');
-      return 'Pending'; // Default fallback status
+      // If Paid or Pending and not expired, keep as is
     }
+
+    // Update status in Firestore if it changed
+    if (newStatus != currentPaymentStatus) {
+      await firestore.collection('students').doc(studentUid).update({
+        'paymentStatus': newStatus,
+        'statusUpdatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      print('Updated payment status for $studentUid: $currentPaymentStatus → $newStatus');
+    }
+
+    return newStatus;
+
+  } catch (e) {
+    print('Error checking fee status: $e');
+    return 'Pending'; // Default fallback status
   }
+}
 
   /// Gets student payment status with real-time fee checking
-  static Future<Map<String, dynamic>> getStudentStatusInfo(String studentUid) async {
-    try {
-      final String currentStatus = await checkAndUpdateFeeStatus(studentUid);
-      
-      // Get updated student data
-      final DocumentSnapshot studentDoc = await FirebaseFirestore.instance
-          .collection('students')
-          .doc(studentUid)
-          .get();
+ static Future<Map<String, dynamic>> getStudentStatusInfo(String studentUid) async {
+  try {
+    final String currentStatus = await checkAndUpdateFeeStatus(studentUid);
+    
+    // Get updated student data
+    final DocumentSnapshot studentDoc = await FirebaseFirestore.instance
+        .collection('students')
+        .doc(studentUid)
+        .get();
 
-      if (!studentDoc.exists) {
-        return {
-          'paymentStatus': 'Pending',
-          'feeExpiryDate': null,
-          'daysUntilExpiry': null,
-          'isGraceActive': false,
-        };
-      }
-
-      final data = studentDoc.data() as Map<String, dynamic>;
-      final Timestamp? feeExpiryTimestamp = data['feeExpiryDate'];
-      
-      DateTime? feeExpiryDate;
-      int? daysUntilExpiry;
-      
-      if (feeExpiryTimestamp != null) {
-        feeExpiryDate = feeExpiryTimestamp.toDate();
-        final DateTime now = DateTime.now();
-        final DateTime today = DateTime(now.year, now.month, now.day);
-        final DateTime expiry = DateTime(feeExpiryDate.year, feeExpiryDate.month, feeExpiryDate.day);
-        
-        daysUntilExpiry = expiry.difference(today).inDays;
-      }
-
-      return {
-        'paymentStatus': currentStatus,
-        'feeExpiryDate': feeExpiryDate,
-        'daysUntilExpiry': daysUntilExpiry,
-        'isGraceActive': currentStatus == 'Grace',
-      };
-
-    } catch (e) {
-      print('Error getting student status info: $e');
+    if (!studentDoc.exists) {
       return {
         'paymentStatus': 'Pending',
         'feeExpiryDate': null,
         'daysUntilExpiry': null,
         'isGraceActive': false,
+        'shouldShowBanner': false, // NEW: for 7-day warning banner
       };
     }
+
+    final data = studentDoc.data() as Map<String, dynamic>;
+    final Timestamp? feeExpiryTimestamp = data['feeExpiryDate'];
+    
+    DateTime? feeExpiryDate;
+    int? daysUntilExpiry;
+    bool shouldShowBanner = false;
+    
+    if (feeExpiryTimestamp != null) {
+      feeExpiryDate = feeExpiryTimestamp.toDate();
+      final DateTime now = DateTime.now();
+      final DateTime today = DateTime(now.year, now.month, now.day);
+      final DateTime expiry = DateTime(feeExpiryDate.year, feeExpiryDate.month, feeExpiryDate.day);
+      
+      daysUntilExpiry = expiry.difference(today).inDays;
+      
+      // Show banner 7 days before expiry (but keep status as Paid)
+      if (daysUntilExpiry <= 7 && daysUntilExpiry >= 0 && currentStatus == 'Paid') {
+        shouldShowBanner = true;
+      }
+    }
+
+    return {
+      'paymentStatus': currentStatus,
+      'feeExpiryDate': feeExpiryDate,
+      'daysUntilExpiry': daysUntilExpiry,
+      'isGraceActive': currentStatus == 'Grace',
+      'shouldShowBanner': shouldShowBanner, // NEW: for banner display logic
+    };
+
+  } catch (e) {
+    print('Error getting student status info: $e');
+    return {
+      'paymentStatus': 'Pending',
+      'feeExpiryDate': null,
+      'daysUntilExpiry': null,
+      'isGraceActive': false,
+      'shouldShowBanner': false,
+    };
   }
+}
 
   /// Batch update all students' fee statuses (useful for scheduled tasks)
   static Future<void> batchUpdateAllStudentFeeStatuses() async {

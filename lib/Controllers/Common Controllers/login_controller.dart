@@ -12,10 +12,6 @@ import 'package:vignan_transportation_management/View/Staff%20Module/staff_home_
 import 'package:vignan_transportation_management/View/Student%20module/profile_locked_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_custom_bottom_navbar_screen.dart';
 
-// Import your screen files here
-// import 'package:vignan_transportation_management/View/Admin%20module/admin_custom_bottom_navbar.dart';
-// ... other imports
-
 class LoginController with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -142,30 +138,20 @@ class LoginController with ChangeNotifier {
               );
               break;
             case 'student':
-              // ENHANCED: Check fee status with expiry logic
+              // UPDATED: Check fee status with corrected expiry logic
               final statusInfo = await StudentController.getStudentStatusInfo(uid);
               final String paymentStatus = statusInfo['paymentStatus'];
               final bool isGraceActive = statusInfo['isGraceActive'];
               final int? daysUntilExpiry = statusInfo['daysUntilExpiry'];
+              final bool shouldShowBanner = statusInfo['shouldShowBanner'] ?? false;
 
               log("Student payment status: $paymentStatus");
               log("Days until expiry: $daysUntilExpiry");
               log("Grace active: $isGraceActive");
+              log("Should show banner: $shouldShowBanner");
 
               if (paymentStatus == "Paid" || paymentStatus == "Grace") {
-                // Show grace period warning if applicable
-                if (isGraceActive && daysUntilExpiry != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        "Grace Period: Fee expires in $daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'}",
-                      ),
-                      backgroundColor: Colors.orange,
-                      duration: Duration(seconds: 5),
-                    ),
-                  );
-                }
-
+                // Navigate to student dashboard
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(
@@ -176,6 +162,36 @@ class LoginController with ChangeNotifier {
                   ),
                   (route) => false,
                 );
+
+                // Show appropriate notification after navigation
+                Future.delayed(Duration(milliseconds: 500), () {
+                  if (context.mounted) {
+                    if (shouldShowBanner && daysUntilExpiry != null) {
+                      // Show 7-day renewal warning (when status is still "Paid")
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Your transport service renewal is due in $daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'}. Please pay to continue enjoying the service.",
+                          ),
+                          backgroundColor: Colors.orange,
+                          duration: Duration(seconds: 6),
+                        ),
+                      );
+                    } else if (isGraceActive && daysUntilExpiry != null) {
+                      // Show grace period warning (when status is "Grace")
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Grace Period Active: Fee expired ${(-daysUntilExpiry)} day${(-daysUntilExpiry) == 1 ? '' : 's'} ago. Please renew to avoid service interruption.",
+                          ),
+                          backgroundColor: Colors.red[600],
+                          duration: Duration(seconds: 6),
+                        ),
+                      );
+                    }
+                  }
+                });
+                
               } else if (paymentStatus == "Pending" || paymentStatus == "Overdue") {
                 // Navigate to profile locked screen
                 Navigator.pushAndRemoveUntil(
