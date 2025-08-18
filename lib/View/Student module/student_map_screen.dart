@@ -7,6 +7,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/alert_controller.dart';
 
 class StudentMapScreen extends StatefulWidget {
   const StudentMapScreen({super.key});
@@ -16,6 +18,8 @@ class StudentMapScreen extends StatefulWidget {
 }
 
 class _StudentMapScreenState extends State<StudentMapScreen> {
+  late AlertController _alertController;
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -51,6 +55,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
 
   @override
   void initState() {
+    _alertController = Provider.of<AlertController>(context, listen: false);
     super.initState();
     _initializeRoute();
   }
@@ -523,6 +528,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             if (data['lat'] != null && data['lng'] != null && mounted) {
               final lat = double.tryParse(data['lat'].toString());
               final lng = double.tryParse(data['lng'].toString());
+              final speed = double.tryParse(data['speed']?.toString() ?? '0');
 
               if (lat != null && lng != null) {
                 log('✅ Driver location parsed successfully: $lat, $lng');
@@ -531,6 +537,11 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                   driverLocation = LatLng(lat, lng);
                   lastDriverUpdate = DateTime.now();
                 });
+                // Check for alerts with current bus data
+                Provider.of<AlertController>(
+                  context,
+                  listen: false,
+                ).checkAndTriggerAlert(driverLocation!);
 
                 _updateDriverMarker();
 

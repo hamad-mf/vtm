@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vignan_transportation_management/Controllers/Common%20Controllers/login_controller.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/student_controller.dart';
+import 'package:vignan_transportation_management/View/Student%20module/student_alert_setting_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_custom_bottom_navbar_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_qe_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_route_details.dart';
@@ -252,10 +254,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-
-
-      final int? daysUntilExpiry = studentStatusInfo?['daysUntilExpiry'];
-  final String paymentStatus = studentStatusInfo?['paymentStatus'] ?? '';
+    final int? daysUntilExpiry = studentStatusInfo?['daysUntilExpiry'];
+    final String paymentStatus = studentStatusInfo?['paymentStatus'] ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -290,34 +290,34 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-           if (studentStatusInfo?['shouldShowBanner'] == true)
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(12),
-              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.orange[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange, width: 1),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning, color: Colors.orange[700]),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      "Your transport service renewal is due in "
-                      "$daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'}. "
-                      "Please pay to continue enjoying the service.",
-                      style: TextStyle(
-                        color: Colors.orange[800],
-                        fontWeight: FontWeight.w600,
+            if (studentStatusInfo?['shouldShowBanner'] == true)
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(12),
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning, color: Colors.orange[700]),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "Your transport service renewal is due in "
+                        "$daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'}. "
+                        "Please pay to continue enjoying the service.",
+                        style: TextStyle(
+                          color: Colors.orange[800],
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
             // Fee Status Card
             _buildFeeStatusCard(),
@@ -388,6 +388,28 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
                     SizedBox(height: 12),
 
+                    // In student_dashboard_screen.dart, add this to your quick actions
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => StudentAlertSettingsScreen(),
+                            ),
+                          );
+                        },
+                        icon: Icon(Icons.notifications),
+                        label: Text('Alert Settings'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepPurple,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 10.h),
                     // Route Info Button (placeholder)
                     SizedBox(
                       width: double.infinity,
