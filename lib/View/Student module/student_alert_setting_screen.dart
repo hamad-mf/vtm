@@ -81,10 +81,10 @@ class _StudentAlertSettingsScreenState
                       children: [
                         Expanded(
                           child: Slider(
-                            value: alertDistance.toDouble(),
-                            min: 200,
-                            max: 1000,
-                            divisions: 8,
+                            value: alertDistance.clamp(10, 300).toDouble(),
+                            min: 10,
+                            max: 300,
+                            divisions: 10,
                             label: '${alertDistance}m',
                             onChanged:
                                 (value) => setState(
@@ -162,6 +162,16 @@ class _StudentAlertSettingsScreenState
                         : Text('Save Settings'),
               ),
             ),
+
+            // ElevatedButton(
+            //   onPressed: () {
+            //     Provider.of<AlertController>(
+            //       context,
+            //       listen: false,
+            //     ).testBusAlert();
+            //   },
+            //   child: Text('Test Bus Alert Sound'),
+            // ),
           ],
         ),
       ),

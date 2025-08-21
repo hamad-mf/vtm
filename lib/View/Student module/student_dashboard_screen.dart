@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +9,7 @@ import 'package:vignan_transportation_management/Controllers/Common%20Controller
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/student_controller.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_alert_setting_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_custom_bottom_navbar_screen.dart';
+import 'package:vignan_transportation_management/View/Student%20module/student_notifications_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_qe_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_route_details.dart';
 
@@ -256,7 +259,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   Widget build(BuildContext context) {
     final int? daysUntilExpiry = studentStatusInfo?['daysUntilExpiry'];
     final String paymentStatus = studentStatusInfo?['paymentStatus'] ?? '';
-
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    log("student uid : $uid");
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -272,19 +276,20 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           //   icon: Icon(Icons.refresh),
           //   tooltip: 'Refresh Status',
           // ),
-          IconButton(
-            onPressed: () async {
-              SharedPreferences prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('isstudentLoggedIn', false);
-              final authController = Provider.of<LoginController>(
-                context,
-                listen: false,
-              );
-              authController.signOut(context);
-            },
-            icon: Icon(Icons.exit_to_app),
-            tooltip: 'Sign Out',
-          ),
+
+          // IconButton(
+          //   onPressed: () async {
+          //     SharedPreferences prefs = await SharedPreferences.getInstance();
+          //     await prefs.setBool('isstudentLoggedIn', false);
+          //     final authController = Provider.of<LoginController>(
+          //       context,
+          //       listen: false,
+          //     );
+          //     authController.signOut(context);
+          //   },
+          //   icon: Icon(Icons.exit_to_app),
+          //   tooltip: 'Sign Out',
+          // ),
         ],
       ),
       body: SingleChildScrollView(
@@ -491,6 +496,47 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         },
                         icon: Icon(Icons.person),
                         label: Text('View Profile'),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 12),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      StudentNotificationsScreen(),
+                              transitionsBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                                child,
+                              ) {
+                                return SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(1.0, 0.0),
+                                    end: Offset.zero,
+                                  ).animate(
+                                    CurvedAnimation(
+                                      parent: animation,
+                                      curve: Curves.easeInOut,
+                                    ),
+                                  ),
+                                  child: child,
+                                );
+                              },
+                            ),
+                          );
+                        },
+                        icon: Icon(Icons.notifications_on),
+                        label: Text('View Notifications'),
                         style: OutlinedButton.styleFrom(
                           padding: EdgeInsets.symmetric(vertical: 12),
                         ),

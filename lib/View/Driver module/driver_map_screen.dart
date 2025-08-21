@@ -614,7 +614,7 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     });
   }
 
-  int countdown = 20;
+  int countdown = 5;
   Timer? countdownTimer;
 
   // Add at the top of _DriverMapScreenState class
@@ -655,12 +655,12 @@ class _DriverMapScreenState extends State<DriverMapScreen> {
     // 🚀 Production code — unchanged
     log('🚀 PRODUCTION MODE ACTIVE');
     _getCurrentLocationAndUpdate();
-    locationUpdateTimer = Timer.periodic(const Duration(seconds: 20), (
+    locationUpdateTimer = Timer.periodic(const Duration(seconds: 5), (
       timer,
     ) async {
       await _getCurrentLocationAndUpdate();
       setState(() {
-        countdown = 20;
+        countdown =5;
       });
     });
     countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/student_controller.dart';
@@ -19,6 +20,7 @@ class EditStudentSheet extends StatefulWidget {
 class _EditStudentSheetState extends State<EditStudentSheet> {
   final _formKey = GlobalKey<FormState>();
   late Map<String, String> _formData;
+  DateTime? _feeExpiryDate;
 
   @override
   void initState() {
@@ -31,6 +33,10 @@ class _EditStudentSheetState extends State<EditStudentSheet> {
       'assignedRoute': widget.studentData['assignedRoute'],
       'paymentStatus': widget.studentData['paymentStatus'],
     };
+    final Timestamp? timestamp = widget.studentData['feeExpiryDate'];
+    if (timestamp != null) {
+      _feeExpiryDate = timestamp.toDate();
+    }
   }
 
   @override
@@ -47,19 +53,75 @@ class _EditStudentSheetState extends State<EditStudentSheet> {
                 "Edit Student",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              ..._formData.keys.map((field) => buildField(field)),
+
+              // Build fields for editable student info
+              ..._formData.keys.map((field) => buildField(field)).toList(),
+
+              const SizedBox(height: 16),
+
+              // Date picker for feeExpiryDate
+              InkWell(
+                onTap: () async {
+                  final DateTime? pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: _feeExpiryDate ?? DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                  );
+                  if (pickedDate != null) {
+                    setState(() {
+                      _feeExpiryDate = pickedDate;
+                    });
+                  }
+                },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Fee Expiry Date',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  child: Text(
+                    _feeExpiryDate != null
+                        ? '${_feeExpiryDate!.day}/${_feeExpiryDate!.month}/${_feeExpiryDate!.year}'
+                        : 'Select a date',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 12),
+
               ElevatedButton(
                 onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    _formKey.currentState!.save();
-                    await context.read<StudentController>().updateStudent(
-                      widget.studentId,
-                      _formData,
+                  if (!_formKey.currentState!.validate()) return;
+
+                  if (_feeExpiryDate == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please select a fee expiry date'),
+                      ),
                     );
-                    Navigator.pop(context);
-                    Navigator.pop(context);
+                    return;
                   }
+
+                  _formKey.currentState!.save();
+
+                  // Prepare update data with feeExpiryDate as Timestamp
+                  Map<String, dynamic> updateData = _formData.map(
+                    (key, value) => MapEntry(key, value),
+                  );
+                  updateData['feeExpiryDate'] = Timestamp.fromDate(
+                    _feeExpiryDate!,
+                  );
+
+                  await context.read<StudentController>().updateStudent(
+                    widget.studentId,
+                    updateData,
+                  );
+
+                  Navigator.pop(context); // Close bottom sheet or dialog
+                  Navigator.pop(context); // Optional additional pop if needed
                 },
                 child: const Text("Save Changes"),
                 style: ElevatedButton.styleFrom(
@@ -95,7 +157,7 @@ class _EditStudentSheetState extends State<EditStudentSheet> {
 
     return TextFormField(
       initialValue: _formData[field],
-      decoration: InputDecoration(labelText: (field)),
+      decoration: InputDecoration(labelText: field),
       validator: (value) => value == null || value.isEmpty ? 'Required' : null,
       onSaved: (value) => _formData[field] = value!,
     );

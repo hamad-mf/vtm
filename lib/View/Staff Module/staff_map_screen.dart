@@ -10,17 +10,17 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/alert_controller.dart';
 
-class StudentMapScreen extends StatefulWidget {
-  const StudentMapScreen({super.key});
+class StaffMapScreen extends StatefulWidget {
+  const StaffMapScreen({super.key});
 
   @override
-  State<StudentMapScreen> createState() => _StudentMapScreenState();
+  State<StaffMapScreen> createState() => _StaffMapScreenState();
 }
 
-class _StudentMapScreenState extends State<StudentMapScreen> {
+class _StaffMapScreenState extends State<StaffMapScreen> {
   late AlertController _alertController;
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   GoogleMapController? mapController;
@@ -47,7 +47,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   bool isLoading = true;
   String loadingMessage = "Loading route...";
 
-  // Route info
   Map<String, dynamic>? routeData;
   double totalDistanceMeters = 0;
   int totalDurationSeconds = 0;
@@ -57,13 +56,16 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   void initState() {
     _alertController = Provider.of<AlertController>(context, listen: false);
     super.initState();
+    log('initState called');
     _initializeRoute();
   }
 
   Future<void> _initializeRoute() async {
+    log("loading");
     try {
-      final studentId = _auth.currentUser?.uid;
-      if (studentId == null) {
+      final staffid =FirebaseAuth.instance.currentUser?.uid; 
+      log(" STAFF ID${staffid.toString()}");
+      if (staffid == null) {
         setState(() {
           loadingMessage = "Not logged in";
           isLoading = false;
@@ -75,36 +77,37 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         loadingMessage = "Loading student data...";
       });
 
-      // Fetch student document
-      DocumentSnapshot studentDoc =
-          await _firestore.collection('students').doc(studentId).get();
-      if (!studentDoc.exists) {
+      DocumentSnapshot staffDoc =
+          await _firestore.collection('staffs').doc(staffid).get();
+      if (!staffDoc.exists) {
         setState(() {
-          loadingMessage = "Student profile not found";
+          loadingMessage = "staff profile not found";
           isLoading = false;
         });
         return;
       }
 
-      final studentData = studentDoc.data() as Map<String, dynamic>;
-      assignedRouteId = studentData['assignedRouteId'];
-      assignedDriverId = studentData['assignedDriverId'];
+      final staffData = staffDoc.data() as Map<String, dynamic>;
 
-      // CRITICAL FIX: Get bus ID from driver document (same as driver app)
+      assignedRouteId = staffData['assignedRouteId'];
+      assignedDriverId = staffData['assignedDriverId'];
+      log(assignedBusId.toString());
+      log(assignedDriverId.toString());
       if (assignedDriverId != null) {
         DocumentSnapshot driverDoc =
             await _firestore.collection('drivers').doc(assignedDriverId).get();
+            log("Fetched driver document: ${driverDoc.exists}");
         if (driverDoc.exists) {
           final driverData = driverDoc.data() as Map<String, dynamic>;
-          assignedBusId =
-              driverData['assignedBusId']; // Same source as driver app
+          setState(() {
+  assignedBusId = driverData['assignedBusId'];
+});
           log('Got assignedBusId from driver document: $assignedBusId');
         }
       }
 
-      // Get student's destination
-      double? myLat = studentData['destinationLatitude']?.toDouble();
-      double? myLng = studentData['destinationLongitude']?.toDouble();
+      double? myLat = staffData['destinationLatitude']?.toDouble();
+      double? myLng = staffData['destinationLongitude']?.toDouble();
       if (myLat != null && myLng != null && myLat != 0.0 && myLng != 0.0) {
         myDestination = LatLng(myLat, myLng);
       }
@@ -121,7 +124,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         loadingMessage = "Loading route data...";
       });
 
-      // Only proceed if we have assignedBusId
       if (assignedBusId == null) {
         setState(() {
           loadingMessage = "No bus assigned to driver";
@@ -130,7 +132,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         return;
       }
 
-      // Fetch route document using direct reference (same as driver)
       DocumentSnapshot routeDoc =
           await _firestore.collection('routes').doc(assignedRouteId).get();
 
@@ -144,9 +145,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
 
       routeData = routeDoc.data() as Map<String, dynamic>;
 
-      // Remove this line - we already got assignedBusId from driver document
-      // assignedBusId = routeData!['assignedVehicleId'] as String?;
-
       setState(() {
         loadingMessage = "Building route...";
       });
@@ -155,7 +153,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
       await _fetchAllStudentDestinations();
       await _buildRouteWithDestinations();
 
-      // Start listening to driver location
       _listenToDriverLocation();
       _startStatusUpdateTimer();
 
@@ -174,7 +171,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   Future<void> _buildRouteFromData() async {
     if (routeData == null) return;
 
-    // Extract start, end, stops (same as driver)
     final startPoint = routeData!['startPoint'];
     final endPoint = routeData!['endPoint'];
     final stopsRaw = routeData!['stops'] as List<dynamic>? ?? [];
@@ -228,16 +224,18 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   }
 
   Future<void> _buildRouteWithDestinations() async {
+    log("routeStart: $routeStart");
+log("routeEnd: $routeEnd");
+log("stops: ${stops.length}");
+log("studentDestinations: ${studentDestinations.length}");
+log("assignedBusId: $assignedBusId");
     if (routeData == null || routeStart == null || routeEnd == null) return;
 
     try {
-      // Build waypoints including stops and student destinations (same as driver)
       List<LatLng> allWaypoints = [];
 
-      // Add route stops
       allWaypoints.addAll(stops);
 
-      // Add student destinations
       allWaypoints.addAll(studentDestinations);
 
       await _fetchGoogleDirectionsRoute(routeStart!, routeEnd!, allWaypoints);
@@ -269,7 +267,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             '&units=metric'
             '&key=$apiKey';
       } else {
-        // Limit waypoints to avoid API limits (same as driver)
         List<LatLng> limitedWaypoints =
             waypoints.length > 8 ? waypoints.take(8).toList() : waypoints;
 
@@ -300,7 +297,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         if (routes.isNotEmpty) {
           final route = routes[0];
 
-          // Get detailed route points (same as driver)
           final legs = route['legs'] as List;
           List<LatLng> detailedPoints = [];
           double distanceMeters = 0;
@@ -323,7 +319,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             totalDurationSeconds = durationSeconds;
           });
 
-          // Use detailed points, sample if too many
           routePoints =
               detailedPoints.length > 200
                   ? _samplePolylinePoints(detailedPoints, 200)
@@ -332,7 +327,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
           _buildRoutePolyline();
           _buildRouteMarkers();
 
-          // Move camera to show entire route
           if (mapController != null) {
             _fitCameraToRoute();
           }
@@ -368,9 +362,8 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         Polyline(
           polylineId: const PolylineId("route_polyline"),
           points: routePoints,
-          color: Colors.red, // Same as driver - changed from blue
-          width: 6, // Same as driver - increased from 5
-          patterns: [],
+          color: Colors.red,
+          width: 6,
           jointType: JointType.round,
           endCap: Cap.roundCap,
           startCap: Cap.roundCap,
@@ -384,7 +377,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   void _buildRouteMarkers() {
     markers.clear();
 
-    // Start marker
     if (routeStart != null) {
       markers.add(
         Marker(
@@ -398,7 +390,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
       );
     }
 
-    // Route stops markers
     for (int i = 0; i < stops.length; i++) {
       markers.add(
         Marker(
@@ -410,7 +401,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
       );
     }
 
-    // My destination marker (highlighted)
     if (myDestination != null) {
       markers.add(
         Marker(
@@ -424,14 +414,13 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
       );
     }
 
-    // Other student destinations
     for (int i = 0; i < studentDestinations.length; i++) {
       if (myDestination == null || studentDestinations[i] != myDestination) {
         markers.add(
           Marker(
             markerId: MarkerId('student_dest_$i'),
             position: studentDestinations[i],
-            infoWindow: InfoWindow(title: "Student Pickup"),
+            infoWindow: const InfoWindow(title: "Student Pickup"),
             icon: BitmapDescriptor.defaultMarkerWithHue(
               BitmapDescriptor.hueYellow,
             ),
@@ -440,7 +429,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
       }
     }
 
-    // End marker
     if (routeEnd != null) {
       markers.add(
         Marker(
@@ -452,7 +440,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
       );
     }
 
-    // Driver marker if available
     _updateDriverMarker();
 
     setState(() {});
@@ -516,10 +503,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
 
             if (data == null) {
               log('❌ No data found for bus_locations/$assignedBusId');
-              log('❌ This could mean:');
-              log('   1. Driver app is not running');
-              log('   2. Driver is not updating location');
-              log('   3. Bus ID mismatch between driver and student');
               return;
             }
 
@@ -528,31 +511,16 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             if (data['lat'] != null && data['lng'] != null && mounted) {
               final lat = double.tryParse(data['lat'].toString());
               final lng = double.tryParse(data['lng'].toString());
-              final speed = double.tryParse(data['speed']?.toString() ?? '0');
 
               if (lat != null && lng != null) {
                 log('✅ Driver location parsed successfully: $lat, $lng');
-
                 setState(() {
                   driverLocation = LatLng(lat, lng);
                   lastDriverUpdate = DateTime.now();
                 });
-                // Check for alerts with current bus data
-                Provider.of<AlertController>(
-                  context,
-                  listen: false,
-                ).checkAndTriggerAlert(driverLocation!);
+                _alertController.checkAndTriggerAlert(driverLocation!);
 
                 _updateDriverMarker();
-
-                // Show success message
-                // ScaffoldMessenger.of(context).showSnackBar(
-                //   SnackBar(
-                //     content: Text('Bus location updated: $lat, $lng'),
-                //     backgroundColor: Colors.green,
-                //     duration: Duration(seconds: 2),
-                //   ),
-                // );
               } else {
                 log('❌ Could not parse lat/lng: lat=$lat, lng=$lng');
               }
@@ -579,7 +547,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
     statusUpdateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted && driverLocation != null) {
         setState(() {
-          // This will refresh the driver status text
           _updateDriverMarker();
         });
       }
@@ -741,8 +708,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                     zoomControlsEnabled: true,
                     mapType: MapType.normal,
                   ),
-
-                  // Status panel (same as driver)
                   Positioned(
                     bottom: 20,
                     left: 20,
@@ -752,11 +717,11 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
                             color: Colors.black26,
                             blurRadius: 6,
-                            offset: const Offset(0, 2),
+                            offset: Offset(0, 2),
                           ),
                         ],
                       ),
@@ -772,32 +737,6 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-
-                          // Debug Info
-                          // Container(
-                          //   padding: const EdgeInsets.all(8),
-                          //   decoration: BoxDecoration(
-                          //     color: Colors.grey[100],
-                          //     borderRadius: BorderRadius.circular(4),
-                          //   ),
-                          //   child: Column(
-                          //     crossAxisAlignment: CrossAxisAlignment.start,
-                          //     children: [
-                          //       Text('DEBUG INFO:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                          //       Text('Student ID: ${_auth.currentUser?.uid ?? 'NULL'}', style: TextStyle(fontSize: 11)),
-                          //       Text('Route ID: ${assignedRouteId ?? 'NULL'}', style: TextStyle(fontSize: 11)),
-                          //       Text('Driver ID: ${assignedDriverId ?? 'NULL'}', style: TextStyle(fontSize: 11)),
-                          //       Text('Bus ID (from driver doc): ${assignedBusId ?? 'NULL'}', style: TextStyle(fontSize: 11)),
-                          //       Text('Bus ID (from route doc): ${routeData?['assignedVehicleId'] ?? 'NULL'}', style: TextStyle(fontSize: 11)),
-                          //       Text('Firebase Path: bus_locations/${assignedBusId ?? 'NULL'}', style: TextStyle(fontSize: 11)),
-                          //       Text('Driver Location: ${driverLocation?.toString() ?? 'NULL'}', style: TextStyle(fontSize: 11)),
-                          //       Text('Last Update: ${lastDriverUpdate?.toString() ?? 'NEVER'}', style: TextStyle(fontSize: 11)),
-                          //       Text('Listener Active: ${driverLocationStream != null ? 'YES' : 'NO'}', style: TextStyle(fontSize: 11)),
-                          //     ],
-                          //   ),
-                          // ),
-                          const SizedBox(height: 8),
-
                           if (totalDistanceMeters > 0) ...[
                             Text(
                               'Total Distance: ${formatDistance(totalDistanceMeters)}',
@@ -840,21 +779,19 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                               ),
                             ],
                           ),
-
-                          // Manual refresh button
                           const SizedBox(height: 8),
                           ElevatedButton.icon(
                             onPressed: () {
                               log('Manual refresh triggered');
-                              _listenToDriverLocation(); // Restart listener
+                              _listenToDriverLocation();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
+                                const SnackBar(
                                   content: Text('Refreshing bus location...'),
                                 ),
                               );
                             },
-                            icon: Icon(Icons.refresh),
-                            label: Text('Refresh Bus Location'),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Refresh Bus Location'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               foregroundColor: Colors.white,

@@ -29,6 +29,12 @@ class StaffController with ChangeNotifier {
     required String name,
     required String email,
     required String password,
+    required String assignedRouteId,
+    required String assignedRouteName,
+    required String assignedDriverId,
+    required String assignedDriverName,
+    required String destinationLatitude,
+    required String destinationLongitude,
   }) async {
     isLoading = true;
     error = null;
@@ -51,6 +57,12 @@ class StaffController with ChangeNotifier {
         'staffId': uid,
         'name': name,
         'email': email,
+        'assignedRouteId': assignedRouteId,
+        'assignedRouteName': assignedRouteName,
+        'assignedDriverId': assignedDriverId,
+        'assignedDriverName': assignedDriverName,
+        'destinationLatitude': double.parse(destinationLatitude),
+        'destinationLongitude': double.parse(destinationLongitude),
         'createdAt': FieldValue.serverTimestamp(),
       });
     } on FirebaseAuthException catch (e) {

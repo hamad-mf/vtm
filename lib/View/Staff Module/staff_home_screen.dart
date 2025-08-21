@@ -30,7 +30,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
           ),
         ],
       ),
-      body: Center(child: Text("student home")),
+      body: Center(child: Text("staff home")),
     );
   }
 }

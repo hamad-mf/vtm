@@ -11,6 +11,7 @@ import 'package:vignan_transportation_management/View/Admin%20module/admin_custo
 import 'package:vignan_transportation_management/View/Common%20Screens/profile_selection_screen.dart';
 import 'package:vignan_transportation_management/View/Driver%20module/driver_custom_bottom_navbar.dart';
 import 'package:vignan_transportation_management/View/Parent%20module/parent_home_screen.dart';
+import 'package:vignan_transportation_management/View/Staff%20Module/staff_custom_bottom_navbar.dart';
 import 'package:vignan_transportation_management/View/Staff%20Module/staff_home_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/profile_locked_screen.dart';
 import 'package:vignan_transportation_management/View/Student%20module/student_custom_bottom_navbar_screen.dart';
@@ -62,7 +63,9 @@ class _SplashScreenState extends State<SplashScreen> {
         await _handleStudentAutoLogin();
       } else if (isStaffLoggedIn) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => StaffHomeScreen()),
+          MaterialPageRoute(
+            builder: (_) => StaffCustomBottomNavbarScreen(initialIndex: 0),
+          ),
         );
       } else if (isParentLoggedIn) {
         Navigator.of(context).pushReplacement(
@@ -113,10 +116,11 @@ class _SplashScreenState extends State<SplashScreen> {
         // Navigate to student dashboard
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => StudentCustomBottomNavbarScreen(
-              initialIndex: 0,
-              isGraceActive: isGraceActive,
-            ),
+            builder:
+                (_) => StudentCustomBottomNavbarScreen(
+                  initialIndex: 0,
+                  isGraceActive: isGraceActive,
+                ),
           ),
         );
 
@@ -148,7 +152,7 @@ class _SplashScreenState extends State<SplashScreen> {
             }
           }
         });
-        
+
         //zaman is gay
       } else if (paymentStatus == "Pending" || paymentStatus == "Overdue") {
         // Navigate to profile locked screen
@@ -186,12 +190,13 @@ class _SplashScreenState extends State<SplashScreen> {
                 "VIGNAN TRANSPORTATION",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  foreground: Paint()
-                    ..shader = const LinearGradient(
-                      colors: [primaryPurple, darkPurple],
-                    ).createShader(
-                      const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0),
-                    ),
+                  foreground:
+                      Paint()
+                        ..shader = const LinearGradient(
+                          colors: [primaryPurple, darkPurple],
+                        ).createShader(
+                          const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0),
+                        ),
                   fontSize: 24.sp,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.2,
@@ -201,12 +206,13 @@ class _SplashScreenState extends State<SplashScreen> {
                 "MANAGEMENT",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  foreground: Paint()
-                    ..shader = const LinearGradient(
-                      colors: [primaryPurple, darkPurple],
-                    ).createShader(
-                      const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0),
-                    ),
+                  foreground:
+                      Paint()
+                        ..shader = const LinearGradient(
+                          colors: [primaryPurple, darkPurple],
+                        ).createShader(
+                          const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0),
+                        ),
                   fontSize: 24.sp,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.2,
@@ -216,10 +222,7 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
           // Optional: Add loading indicator
           SizedBox(height: 40.h),
-          CircularProgressIndicator(
-            color: primaryPurple,
-            strokeWidth: 3,
-          ),
+          CircularProgressIndicator(color: primaryPurple, strokeWidth: 3),
         ],
       ),
     );
