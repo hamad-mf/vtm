@@ -108,7 +108,7 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
         child: Column(
           children: [
             dashboardCard(
-              title: "Assigned Students",
+              title: "Total Students",
               icon: Icons.school_outlined,
               onTap: () {
                 Navigator.push(

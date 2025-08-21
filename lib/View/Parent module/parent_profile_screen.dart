@@ -8,14 +8,14 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vignan_transportation_management/Controllers/Common%20Controllers/login_controller.dart';
 
-class StaffProfileScreen extends StatefulWidget {
-  const StaffProfileScreen({super.key});
+class ParentProfileScreen extends StatefulWidget {
+  const ParentProfileScreen({super.key});
 
   @override
-  State<StaffProfileScreen> createState() => _StaffProfileScreenState();
+  State<ParentProfileScreen> createState() => _ParentProfileScreenState();
 }
 
-class _StaffProfileScreenState extends State<StaffProfileScreen> {
+class _ParentProfileScreenState extends State<ParentProfileScreen> {
   final DateFormat formatter = DateFormat('dd MMM yyyy');
   final valueStyle = TextStyle(
     color: Colors.white,
@@ -28,6 +28,9 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
     fontSize: 14.sp,
     fontWeight: FontWeight.w500,
   );
+
+  String? _studentName;
+  String? _studentId;
 
   @override
   Widget build(BuildContext context) {
@@ -49,44 +52,63 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
             StreamBuilder<QuerySnapshot>(
               stream:
                   FirebaseFirestore.instance
-                      .collection('staff')
-                      .where('staffId', isEqualTo: currentUid)
+                      .collection('parents')
+                      .where('parentId', isEqualTo: currentUid)
                       .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return _buildLoadingCard();
                 }
 
-                final staffData =
+                final parentData =
                     snapshot.data!.docs.first.data() as Map<String, dynamic>;
-                log(staffData.toString());
-                return _buildProfileCard(staffData);
+                log(parentData.toString());
+
+                // Fetch student information if available
+                _fetchStudentInfo(parentData['studentId']);
+
+                return _buildProfileCard(parentData);
               },
             ),
-            SizedBox(height: 46.h),
+            SizedBox(height: 16.h),
 
-            // Additional Staff-specific Cards
+            // Student Information Card
+            if (_studentName != null)
+              Column(children: [_buildStudentCard(), SizedBox(height: 16.h)]),
+
+            // Parent-specific Action Cards
             // _buildActionCard(
-            //   title: "My Schedule",
-            //   subtitle: "View work schedule and assignments",
-            //   icon: Icons.schedule_outlined,
+            //   title: "Track Bus",
+            //   subtitle: "View real-time bus location",
+            //   icon: Icons.directions_bus_outlined,
             //   onTap: () {
-            //     // Navigate to staff schedule screen
-            //     // Navigator.push(context, _slidePageRoute(StaffScheduleScreen()));
+            //     // Navigate to bus tracking screen
+            //     // Navigator.push(context, _slidePageRoute(BusTrackingScreen()));
+            //   },
+            // ),
+            SizedBox(height: 16.h),
+
+            // _buildActionCard(
+            //   title: "Notifications",
+            //   subtitle: "View bus alerts and updates",
+            //   icon: Icons.notifications_outlined,
+            //   onTap: () {
+            //     // Navigate to notifications screen
+            //     // Navigator.push(context, _slidePageRoute(NotificationsScreen()));
             //   },
             // ),
             // SizedBox(height: 16.h),
 
             // _buildActionCard(
-            //   title: "Route Management",
-            //   subtitle: "Manage assigned routes and students",
-            //   icon: Icons.route_outlined,
+            //   title: "Contact Driver",
+            //   subtitle: "Get in touch with the bus driver",
+            //   icon: Icons.phone_outlined,
             //   onTap: () {
-            //     // Navigate to route management screen
-            //     // Navigator.push(context, _slidePageRoute(StaffRoutesScreen()));
+            //     // Navigate to contact screen
+            //     // Navigator.push(context, _slidePageRoute(ContactDriverScreen()));
             //   },
             // ),
-            // SizedBox(height: 24.h),
+            SizedBox(height: 24.h),
 
             // Logout Button
             _buildLogoutButton(),
@@ -96,7 +118,29 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
     );
   }
 
-  Widget _buildProfileCard(Map<String, dynamic> staffData) {
+  Future<void> _fetchStudentInfo(String? studentId) async {
+    if (studentId == null || studentId.isEmpty) return;
+
+    try {
+      final studentDoc =
+          await FirebaseFirestore.instance
+              .collection('students')
+              .doc(studentId)
+              .get();
+
+      if (studentDoc.exists) {
+        final studentData = studentDoc.data() as Map<String, dynamic>;
+        setState(() {
+          _studentName = studentData['name'];
+          _studentId = studentId;
+        });
+      }
+    } catch (e) {
+      log('Error fetching student info: $e');
+    }
+  }
+
+  Widget _buildProfileCard(Map<String, dynamic> parentData) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -143,9 +187,9 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
                 ),
                 SizedBox(height: 20.h),
 
-                // Staff Name
+                // Parent Name
                 Text(
-                  staffData['name'] ?? 'Staff Name',
+                  parentData['parentName'] ?? 'Parent Name',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24.sp,
@@ -157,7 +201,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
 
                 // Email
                 Text(
-                  staffData['email'] ?? 'email@example.com',
+                  parentData['email'] ?? 'email@example.com',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14.sp,
@@ -167,50 +211,139 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
                 ),
                 SizedBox(height: 20.h),
 
-                // Staff Details
-                _buildInfoRow("Role", staffData['role'] ?? 'Staff Member'),
+                // Parent Details
+                _buildInfoRow(
+                  "Relationship",
+                  parentData['relationship'] ?? 'Parent',
+                ),
                 SizedBox(height: 12.h),
-                // _buildInfoRow("Employee ID", staffData['employeeId'] ?? 'N/A'),
-                // SizedBox(height: 12.h),
 
-                // Department (if available)
-                if (staffData['department'] != null)
+                // Phone Number
+                if (parentData['parentMobileNo'] != null)
                   Column(
                     children: [
-                      _buildInfoRow("Department", staffData['department']),
+                      _buildInfoRow("Phone", parentData['parentMobileNo']),
                       SizedBox(height: 12.h),
                     ],
                   ),
 
-                // Phone Number (if available)
-                if (staffData['phoneNumber'] != null)
-                  Column(
-                    children: [
-                      _buildInfoRow("Phone", staffData['phoneNumber']),
-                      SizedBox(height: 12.h),
-                    ],
-                  ),
-
-                // Assigned Route (if available)
-                if (staffData['assignedRouteName'] != null)
+                // Emergency Contact (if available)
+                if (parentData['parentMobileNo'] != null)
                   Column(
                     children: [
                       _buildInfoRow(
-                        "Assigned Route",
-                        staffData['assignedRouteName'] ?? 'Not assigned',
+                        "Emergency Contact",
+                        parentData['parentMobileNo'],
                       ),
                       SizedBox(height: 12.h),
                     ],
                   ),
 
-                // Joining Date (if available)
-                if (staffData['joiningDate'] != null)
-                  _buildInfoRow(
-                    "Joining Date",
-                    formatter.format(
-                      (staffData['joiningDate'] as Timestamp).toDate(),
-                    ),
+                // Address (if available)
+                if (parentData['parentAddress'] != null)
+                  Column(
+                    children: [
+                      _buildInfoRow("Address", parentData['parentAddress']),
+                      SizedBox(height: 12.h),
+                    ],
                   ),
+
+                // Registration Date (if available)
+                if (parentData['StudentRegNo'] != null)
+                  _buildInfoRow(
+                    "Student register no",
+                    (parentData['StudentRegNo']),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF5D8AA8), Color(0xFF7EB0D2)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF5D8AA8).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          _buildFadedCircle(
+            right: -15.w,
+            top: -5.h,
+            size: 60,
+            color: Colors.white.withOpacity(0.1),
+          ),
+          _buildFadedCircle(
+            right: 30.w,
+            bottom: -10.h,
+            size: 45,
+            color: Colors.white.withOpacity(0.1),
+          ),
+          Padding(
+            padding: EdgeInsets.all(20.w),
+            child: Row(
+              children: [
+                Container(
+                  height: 50.h,
+                  width: 50.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.2),
+                  ),
+                  child: Icon(
+                    Icons.school_outlined,
+                    size: 28.w,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Student",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16.sp,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        _studentName ?? 'Loading...',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (_studentId != null)
+                        Text(
+                          "ID: $_studentId",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 12.sp,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -392,6 +525,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
     double? top,
     double? bottom,
     required double size,
+    Color? color,
   }) {
     return Positioned(
       right: right,
@@ -403,7 +537,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
         width: size.w,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.08),
+          color: color ?? Colors.white.withOpacity(0.08),
         ),
       ),
     );
@@ -455,7 +589,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
                 try {
                   SharedPreferences prefs =
                       await SharedPreferences.getInstance();
-                  await prefs.setBool('isstaffLoggedIn', false);
+                  await prefs.setBool('isparentLoggedIn', false);
                   final authController = Provider.of<LoginController>(
                     context,
                     listen: false,

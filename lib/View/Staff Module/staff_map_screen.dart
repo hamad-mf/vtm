@@ -20,7 +20,6 @@ class StaffMapScreen extends StatefulWidget {
 class _StaffMapScreenState extends State<StaffMapScreen> {
   late AlertController _alertController;
 
-
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   GoogleMapController? mapController;
@@ -63,8 +62,9 @@ class _StaffMapScreenState extends State<StaffMapScreen> {
   Future<void> _initializeRoute() async {
     log("loading");
     try {
-      final staffid =FirebaseAuth.instance.currentUser?.uid; 
-      log(" STAFF ID${staffid.toString()}");
+      final staffid = FirebaseAuth.instance.currentUser?.uid;
+      log(" STAFF ID  ${staffid.toString()}");
+
       if (staffid == null) {
         setState(() {
           loadingMessage = "Not logged in";
@@ -74,11 +74,11 @@ class _StaffMapScreenState extends State<StaffMapScreen> {
       }
 
       setState(() {
-        loadingMessage = "Loading student data...";
+        loadingMessage = "Loading staff data...";
       });
 
       DocumentSnapshot staffDoc =
-          await _firestore.collection('staffs').doc(staffid).get();
+          await _firestore.collection('staff').doc(staffid).get();
       if (!staffDoc.exists) {
         setState(() {
           loadingMessage = "staff profile not found";
@@ -86,9 +86,9 @@ class _StaffMapScreenState extends State<StaffMapScreen> {
         });
         return;
       }
-
+      log("staff data fetching");
       final staffData = staffDoc.data() as Map<String, dynamic>;
-
+      log(staffData.toString());
       assignedRouteId = staffData['assignedRouteId'];
       assignedDriverId = staffData['assignedDriverId'];
       log(assignedBusId.toString());
@@ -96,12 +96,12 @@ class _StaffMapScreenState extends State<StaffMapScreen> {
       if (assignedDriverId != null) {
         DocumentSnapshot driverDoc =
             await _firestore.collection('drivers').doc(assignedDriverId).get();
-            log("Fetched driver document: ${driverDoc.exists}");
+        log("Fetched driver document: ${driverDoc.exists}");
         if (driverDoc.exists) {
           final driverData = driverDoc.data() as Map<String, dynamic>;
           setState(() {
-  assignedBusId = driverData['assignedBusId'];
-});
+            assignedBusId = driverData['assignedBusId'];
+          });
           log('Got assignedBusId from driver document: $assignedBusId');
         }
       }
@@ -225,10 +225,10 @@ class _StaffMapScreenState extends State<StaffMapScreen> {
 
   Future<void> _buildRouteWithDestinations() async {
     log("routeStart: $routeStart");
-log("routeEnd: $routeEnd");
-log("stops: ${stops.length}");
-log("studentDestinations: ${studentDestinations.length}");
-log("assignedBusId: $assignedBusId");
+    log("routeEnd: $routeEnd");
+    log("stops: ${stops.length}");
+    log("studentDestinations: ${studentDestinations.length}");
+    log("assignedBusId: $assignedBusId");
     if (routeData == null || routeStart == null || routeEnd == null) return;
 
     try {

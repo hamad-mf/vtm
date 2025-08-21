@@ -54,6 +54,7 @@ class StaffController with ChangeNotifier {
 
       // 3. Save staff data
       await _firestore.collection('staff').doc(uid).set({
+        'role':"staff",
         'staffId': uid,
         'name': name,
         'email': email,

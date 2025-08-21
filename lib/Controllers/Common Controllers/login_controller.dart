@@ -7,6 +7,7 @@ import 'package:vignan_transportation_management/Controllers/Admin%20Controllers
 import 'package:vignan_transportation_management/View/Admin%20module/admin_custom_bottom_navbar.dart';
 import 'package:vignan_transportation_management/View/Common%20Screens/profile_selection_screen.dart';
 import 'package:vignan_transportation_management/View/Driver%20module/driver_custom_bottom_navbar.dart';
+import 'package:vignan_transportation_management/View/Parent%20module/parent_bottom_navbar_screen.dart';
 import 'package:vignan_transportation_management/View/Parent%20module/parent_home_screen.dart';
 import 'package:vignan_transportation_management/View/Staff%20Module/staff_custom_bottom_navbar.dart';
 import 'package:vignan_transportation_management/View/Staff%20Module/staff_home_screen.dart';
@@ -215,7 +216,7 @@ class LoginController with ChangeNotifier {
             case 'parent':
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (_) => ParentHomeScreen()),
+                MaterialPageRoute(builder: (_) => ParentBottomNavbarScreen(initialIndex: 0)),
                 (route) => false,
               );
               break;
