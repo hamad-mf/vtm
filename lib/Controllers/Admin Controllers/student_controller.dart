@@ -74,7 +74,7 @@ class StudentController with ChangeNotifier {
 
       // Add user role
       await _firestore.collection('roles').doc(uid).set({
-        'role': 'student',
+        'role': 'student','userId':uid,
         'createdAt': FieldValue.serverTimestamp(),
       });
 

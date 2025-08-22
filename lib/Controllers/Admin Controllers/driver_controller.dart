@@ -63,7 +63,7 @@ Future<void> addDriver({
     String uid = result.user!.uid;
 
     // Set user role
-    await _firestore.collection('roles').doc(uid).set({'role': 'driver'});
+    await _firestore.collection('roles').doc(uid).set({'role': 'driver','userId':uid});
 
     // Store driver data in Firestore
     Map<String, dynamic> driverData = {
