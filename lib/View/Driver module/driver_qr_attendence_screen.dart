@@ -1,11 +1,19 @@
+import 'dart:async';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
+
+import 'package:vignan_transportation_management/View/Admin%20module/fcm_service.dart'; // For call if needed
+
+// Adjust the import path
 
 class DriverQrAttendanceScreen extends StatefulWidget {
   final String driverId;
-  const DriverQrAttendanceScreen({required this.driverId});
+  const DriverQrAttendanceScreen({required this.driverId, Key? key})
+    : super(key: key);
 
   @override
   State<DriverQrAttendanceScreen> createState() =>
@@ -41,6 +49,82 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
     return query.docs.isNotEmpty;
   }
 
+  Future<void> _sendAttendanceNotification(
+    String studentId,
+    String session,
+  ) async {
+    try {
+      final studentDoc =
+          await FirebaseFirestore.instance
+              .collection('students')
+              .doc(studentId)
+              .get();
+      if (!studentDoc.exists) return;
+      final studentData = studentDoc.data()!;
+      final studentName = studentData['name'] ?? "Your child";
+
+      // Find parent(s) userId(s) associated with this student
+      final parentQuery =
+          await FirebaseFirestore.instance
+              .collection('parents')
+              .where(
+                'StudentRegNo',
+                isEqualTo: studentData['registrationNumber'],
+              )
+              .get();
+
+      if (parentQuery.docs.isEmpty) return;
+
+      // Craft notification message depending on session
+      String message = "";
+      if (session.toLowerCase() == "morning") {
+        message = "$studentName has arrived at college safely.";
+      } else if (session.toLowerCase() == "evening") {
+        message = "$studentName is in the bus and will be at home soon.";
+      }
+
+      // Send notifications to all parents found
+      for (var parentDoc in parentQuery.docs) {
+        String parentId = parentDoc.id;
+
+        // Fetch user token from roles collection or wherever tokens are stored
+        final tokenDocs =
+            await FirebaseFirestore.instance
+                .collection('roles')
+                .where(
+                  'userId',
+                  isEqualTo: parentId,
+                ) // Assuming your roles collection has userId field
+                .where('role', isEqualTo: 'parent')
+                .get();
+
+        for (var tokenDoc in tokenDocs.docs) {
+          String? token = tokenDoc.data()['fcmToken'];
+          if (token != null && token.isNotEmpty) {
+            await FCMService.sendNotificationToToken(
+              token: token,
+              title: "Attendance Marked",
+              body: message,
+              projectId: "vtm-8559d", // Your Firebase project id here
+            );
+          }
+        }
+
+        // Save notification in Firestore
+        await FirebaseFirestore.instance.collection('notifications').add({
+          'targetRole': 'parent',
+          'targetUserId': parentId,
+          'title': "Attendance Marked",
+          'body': message,
+          'timestamp': FieldValue.serverTimestamp(),
+          'date': DateTime.now().toIso8601String().substring(0, 10),
+        });
+      }
+    } catch (e) {
+      log("Error sending attendance notification: $e");
+    }
+  }
+
   Future<void> _confirmAndMark(String studentId) async {
     String session;
     if (sessionMode == "Auto") {
@@ -52,7 +136,7 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
     if (await _isDuplicateAttendance(studentId, session)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: const Color(0xFF7B61A1),
+          backgroundColor: Colors.deepPurple,
           content: Text("Already marked for $session today!"),
         ),
       );
@@ -89,7 +173,10 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
                       ),
                     ),
                     onPressed: () => Navigator.pop(context, true),
-                    child: Text("Confirm"),
+                    child: Text(
+                      "Confirm",
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ],
               ),
@@ -107,6 +194,9 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
+    // Send notification after successful marking
+    await _sendAttendanceNotification(studentId, session);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF7B61A1),
@@ -119,6 +209,7 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
     this.controller = controller;
     controller.scannedDataStream.listen((scanData) async {
       if (!isScanning) return;
+
       isScanning = false;
 
       final studentId = scanData.code ?? "";
@@ -152,42 +243,20 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeColor = const Color(0xFF7B61A1);
-
     return Scaffold(
       appBar: AppBar(
-        leading: InkWell(
-          onTap: () {
-            Navigator.pop(context);
-          },
-          child: Icon(Icons.arrow_back, color: Colors.white),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF7B61A1), Color(0xFF937BBF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: const Text(
-          "Scan Student QR",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
+        title: Text('Scan for Attendance'),
+        backgroundColor: Color(0xFF7B61A1),
         centerTitle: true,
-        elevation: 4,
       ),
       body: Column(
         children: [
-          // QR Scanner View
           Expanded(
-            flex: 4,
             child: QRView(
               key: qrKey,
               onQRViewCreated: _onQRViewCreated,
               overlay: QrScannerOverlayShape(
-                borderColor: themeColor,
+                borderColor: Color(0xFF7B61A1),
                 borderRadius: 12,
                 borderLength: 35,
                 borderWidth: 8,
@@ -195,56 +264,28 @@ class _DriverQrAttendanceScreenState extends State<DriverQrAttendanceScreen> {
               ),
             ),
           ),
-
-          // Session Selection
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-            color: Colors.grey.shade100,
-            child: Column(
-              children: [
-                const Text(
-                  "Select Session Mode",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children:
-                      ["Auto", "Morning", "Evening"].map((mode) {
-                        final isSelected = sessionMode == mode;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: ChoiceChip(
-                            label: Text(
-                              mode,
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : themeColor,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            selected: isSelected,
-                            onSelected: (_) {
-                              setState(() => sessionMode = mode);
-                            },
-                            selectedColor: themeColor,
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              side: BorderSide(color: themeColor),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Mode: $sessionMode — Hold QR inside the frame to scan",
-                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+          SizedBox(height: 16),
+          Text('Session Mode: $sessionMode', style: TextStyle(fontSize: 16)),
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children:
+                ['Auto', 'Morning', 'Evening'].map((mode) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: ChoiceChip(
+                      label: Text(mode),
+                      selected: sessionMode == mode,
+                      onSelected: (selected) {
+                        setState(() {
+                          sessionMode = mode;
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
           ),
+          SizedBox(height: 16),
         ],
       ),
     );

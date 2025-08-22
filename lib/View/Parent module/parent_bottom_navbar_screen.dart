@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:vignan_transportation_management/View/Parent%20module/parent_dashboard_screen.dart';
 import 'package:vignan_transportation_management/View/Parent%20module/parent_map_screen.dart';
 import 'package:vignan_transportation_management/View/Parent%20module/parent_profile_screen.dart';
@@ -23,6 +24,58 @@ class ParentBottomNavbarScreen extends StatefulWidget {
 
 class _ParentBottomNavbarScreenState extends State<ParentBottomNavbarScreen>
     with TickerProviderStateMixin {
+  void _showHelpdeskContacts(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder:
+          (context) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Admin Helpdesk & Transport Contacts",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF5A3F8A),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _contactTile(context, "Admin Helpdesk", "123-456-7890"),
+                _contactTile(context, "Transport Coordinator", "098-765-4321"),
+                const SizedBox(height: 12),
+                Text(
+                  "Tap on number to call",
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _contactTile(BuildContext context, String label, String phoneNumber) {
+    return ListTile(
+      leading: Icon(Icons.phone, color: const Color(0xFF7E57C2)),
+      title: Text(label),
+      subtitle: Text(phoneNumber),
+      onTap: () async {
+        final telUrl = "tel:$phoneNumber";
+        if (await canLaunch(telUrl)) {
+          await launch(telUrl);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Could not launch phone call")),
+          );
+        }
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -74,10 +127,14 @@ class _ParentBottomNavbarScreenState extends State<ParentBottomNavbarScreen>
     final List<Widget> _screens = [
       ParentDashboardScreen(),
       ParentMapScreen(),
-      ParentStudentAttendenceScreen(),
+      ParentStudentAttendanceScreen(),
       ParentProfileScreen(),
     ];
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.call),
+        onPressed: () => _showHelpdeskContacts(context),
+      ),
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         height: 65.h,

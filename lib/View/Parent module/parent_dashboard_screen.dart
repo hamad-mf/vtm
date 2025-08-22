@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vignan_transportation_management/View/Parent%20module/Widgets/parent_fee_status.dart';
 import 'package:vignan_transportation_management/View/Parent%20module/parent_driver_details_screen.dart';
+import 'package:vignan_transportation_management/View/Parent%20module/parent_notifications_screen.dart';
 import 'package:vignan_transportation_management/View/Parent%20module/parent_student_details_screen.dart';
 
 class ParentDashboardScreen extends StatefulWidget {
@@ -24,6 +26,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
 
   String? studentRegNo;
   String? driverId;
+  String? _linkedStudentId;
 
   @override
   void initState() {
@@ -42,28 +45,26 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           studentRegNo = data['StudentRegNo'] as String? ?? '';
         });
         if (studentRegNo != null && studentRegNo!.isNotEmpty) {
-          _fetchDriverId();
+          _fetchStudentAndDriverId();
         }
       }
     }
   }
 
-  Future<void> _fetchDriverId() async {
-    if (studentRegNo == null || studentRegNo!.isEmpty) return;
+  Future<void> _fetchStudentAndDriverId() async {
+    // Fetch the student doc by reg number
     var studentQuery =
         await FirebaseFirestore.instance
             .collection('students')
             .where('registrationNumber', isEqualTo: studentRegNo)
             .limit(1)
             .get();
-    log("got std data");
-    if (studentQuery.docs.isNotEmpty) {
+    if (studentQuery.docs.isNotEmpty && mounted) {
       var studentData = studentQuery.docs.first.data();
-      if (mounted) {
-        setState(() {
-          driverId = studentData['assignedDriverId'] as String?;
-        });
-      }
+      setState(() {
+        driverId = studentData['assignedDriverId'] as String?;
+        _linkedStudentId = studentData['studentId'] as String?; // <-- Set here!
+      });
     }
   }
 
@@ -74,6 +75,19 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ParentNotificationsScreen(),
+                ),
+              );
+            },
+            icon: Icon(Icons.notifications, color: Colors.white),
+          ),
+        ],
         backgroundColor: baseColor,
         title: Text(
           "Parent Dashboard",
@@ -91,6 +105,9 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                 padding: EdgeInsets.symmetric(vertical: 12.h),
                 child: Column(
                   children: [
+                    if (_linkedStudentId != null)
+                      ParentFeeStatus(studentId: _linkedStudentId!),
+
                     dashboardCard(
                       title: "Live Map",
                       icon: Icons.map_outlined,
@@ -145,23 +162,28 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                                   ),
                                 );
                               },
-                      stream:
-                          driverId == null
-                              ? null
-                              : FirebaseFirestore.instance
-                                  .collection('drivers')
-                                  .where(
-                                    'assignedDriverId',
-                                    isEqualTo: driverId,
-                                  )
-                                  .snapshots(),
+                      // stream:
+                      //     driverId == null
+                      //         ? null
+                      //         : FirebaseFirestore.instance
+                      //             .collection('drivers')
+                      //             .where(
+                      //               'assignedDriverId',
+                      //               isEqualTo: driverId,
+                      //             )
+                      //             .snapshots(),
                     ),
                     dashboardCard(
                       title: "Notifications",
                       icon: Icons.notifications_outlined,
                       subtitle: "View latest notifications",
                       onTap: () {
-                        Navigator.pushNamed(context, '/parentNotifications');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ParentNotificationsScreen(),
+                          ),
+                        );
                       },
                       stream:
                           FirebaseFirestore.instance
