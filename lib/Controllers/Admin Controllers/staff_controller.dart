@@ -50,11 +50,16 @@ class StaffController with ChangeNotifier {
       String uid = result.user!.uid;
 
       // 2. Create role entry
-      await _firestore.collection('roles').doc(uid).set({'role': 'staff','userId':uid});
+      await _firestore.collection('roles').doc(uid).set({
+        'name': name,
+        'fcmToken': null,
+        'role': 'staff',
+        'userId': uid,
+      });
 
       // 3. Save staff data
       await _firestore.collection('staff').doc(uid).set({
-        'role':"staff",
+        'role': "staff",
         'staffId': uid,
         'name': name,
         'email': email,

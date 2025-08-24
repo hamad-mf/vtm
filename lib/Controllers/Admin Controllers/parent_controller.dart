@@ -56,7 +56,7 @@ Future<void> addParent({
     String uid = result.user!.uid;
 
     // Create role entry
-    await _firestore.collection('roles').doc(uid).set({'role': 'parent','userId':uid});
+    await _firestore.collection('roles').doc(uid).set({'name':parentName,'fcmToken':null,'role': 'parent','userId':uid});
 
     // Save parent info
     await _firestore.collection('parents').doc(uid).set({

@@ -1,8 +1,39 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class StudentNotificationsScreen extends StatelessWidget {
   const StudentNotificationsScreen({super.key});
+
+  // ✅ Fixed to work with your notification structure
+  Stream<List<QueryDocumentSnapshot<Map<String, dynamic>>>> studentNotificationsStream() {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    return FirebaseFirestore.instance
+        .collection('notifications')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      // Filter notifications for students
+      return snapshot.docs.where((doc) {
+        final data = doc.data();
+        final targetOption = data['targetOption'] as String?;
+        final customTargets = data['customTargets'] as List?;
+
+        // Check if notification is for this student
+        switch (targetOption) {
+          case 'everyone':
+            return true;
+          case 'users': // Students + Staff
+            return true;
+          case 'custom':
+            return customTargets?.contains(uid) ?? false;
+          default:
+            return false;
+        }
+      }).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +45,7 @@ class StudentNotificationsScreen extends StatelessWidget {
           onTap: () {
             Navigator.pop(context);
           },
-          child: Icon(Icons.arrow_back, color: Colors.white),
+          child: const Icon(Icons.arrow_back, color: Colors.white),
         ),
         backgroundColor: primaryColor,
         title: const Text(
@@ -23,20 +54,29 @@ class StudentNotificationsScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream:
-            FirebaseFirestore.instance
-                .collection('notifications')
-                .where('targetRole', isEqualTo: 'student')
-                .orderBy('timestamp', descending: true)
-                .snapshots(),
+      body: StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
+        stream: studentNotificationsStream(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(color: primaryColor),
             );
           }
-          if (snapshot.data!.docs.isEmpty) {
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error, color: Colors.red, size: 48),
+                  SizedBox(height: 16),
+                  Text("Error: ${snapshot.error}"),
+                ],
+              ),
+            );
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
               child: Text(
                 "No notifications yet",
@@ -45,12 +85,13 @@ class StudentNotificationsScreen extends StatelessWidget {
             );
           }
 
+          final docs = snapshot.data!;
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: snapshot.data!.docs.length,
+            itemCount: docs.length,
             itemBuilder: (context, index) {
-              final doc = snapshot.data!.docs[index];
-              final data = doc.data() as Map<String, dynamic>;
+              final data = docs[index].data();
 
               return Card(
                 shape: RoundedRectangleBorder(

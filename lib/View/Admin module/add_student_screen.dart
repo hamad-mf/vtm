@@ -1,7 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/student_controller.dart';
 
 class AddStudentScreen extends StatefulWidget {
@@ -16,7 +20,6 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   final Map<String, String> _formData = {};
   String? _selectedRouteId;
   String? _selectedRouteName;
-
   String? _selectedDriverId;
   String? _selectedDriverName;
 
@@ -24,11 +27,101 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   final _lngController = TextEditingController();
   DateTime? _feeExpiryDate;
 
+  // Google Maps related variables
+  GoogleMapController? _mapController;
+  LatLng _selectedLocation = const LatLng(
+    17.385044,
+    78.486671,
+  ); // Default to Hyderabad
+  Set<Marker> _markers = {};
+  bool _isMapExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
+
   @override
   void dispose() {
     _latController.dispose();
     _lngController.dispose();
+    _mapController?.dispose();
     super.dispose();
+  }
+
+  // Get current location
+  Future<void> _getCurrentLocation() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        // Handle permanently denied permission
+        return;
+      }
+
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+
+        setState(() {
+          _selectedLocation = LatLng(position.latitude, position.longitude);
+          _updateLocationFields();
+          _updateMarker();
+        });
+
+        if (_mapController != null) {
+          _mapController!.animateCamera(
+            CameraUpdate.newLatLng(_selectedLocation),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error getting location: $e');
+    }
+  }
+
+  // Update marker on map
+  void _updateMarker() {
+    setState(() {
+      _markers = {
+        Marker(
+          markerId: const MarkerId('destination'),
+          position: _selectedLocation,
+          infoWindow: const InfoWindow(
+            title: 'Student Destination',
+            snippet: 'Tap to change location',
+          ),
+          draggable: true,
+          onDragEnd: (LatLng newPosition) {
+            setState(() {
+              _selectedLocation = newPosition;
+              _updateLocationFields();
+            });
+          },
+        ),
+      };
+    });
+  }
+
+  // Update text fields with selected coordinates
+  void _updateLocationFields() {
+    _latController.text = _selectedLocation.latitude.toStringAsFixed(6);
+    _lngController.text = _selectedLocation.longitude.toStringAsFixed(6);
+  }
+
+  // Handle map tap
+  void _onMapTapped(LatLng position) {
+    setState(() {
+      _selectedLocation = position;
+      _updateLocationFields();
+      _updateMarker();
+    });
   }
 
   @override
@@ -168,19 +261,10 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                       // DRIVER SELECTION FROM FIRESTORE
                       _buildDriversDropdown(),
                       SizedBox(height: 16.h),
-                      // DESTINATION LATITUDE
-                      buildLatLngField(
-                        "Destination Latitude",
-                        _latController,
-                        "destinationLatitude",
-                      ),
-                      SizedBox(height: 16.h),
-                      // DESTINATION LONGITUDE
-                      buildLatLngField(
-                        "Destination Longitude",
-                        _lngController,
-                        "destinationLongitude",
-                      ),
+
+                      // MAP SECTION FOR DESTINATION SELECTION
+                      _buildDestinationMapSection(),
+
                       SizedBox(height: 16.h),
                       buildDropdownField(
                         "Payment Status",
@@ -188,7 +272,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                         Icons.payment_outlined,
                       ),
                       SizedBox(height: 16.h),
-                      _buildDateField("fee Expiry Date", Icons.calendar_today, (
+                      _buildDateField("Fee Expiry Date", Icons.calendar_today, (
                         date,
                       ) {
                         _feeExpiryDate = date;
@@ -220,19 +304,16 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                             onPressed: () async {
                               if (_formKey.currentState!.validate()) {
                                 _formKey.currentState!.save();
-                              _formData['assignedRouteId'] = _selectedRouteId ?? "";
-_formData['assignedRouteName'] = _selectedRouteName ?? "";
-
-
-                                // Set assignedRoute field in _formData to route's name (display) or ID (your choice)
+                                _formData['assignedRouteId'] =
+                                    _selectedRouteId ?? "";
+                                _formData['assignedRouteName'] =
+                                    _selectedRouteName ?? "";
                                 _formData['assignedRoute'] =
                                     _selectedRouteName ?? "";
                                 _formData['destinationLatitude'] =
                                     _latController.text.trim();
                                 _formData['destinationLongitude'] =
                                     _lngController.text.trim();
-
-                                // Add these two new lines to save the driver data
                                 _formData['assignedDriverId'] =
                                     _selectedDriverId ?? "";
                                 _formData['assignedDriverName'] =
@@ -253,11 +334,10 @@ _formData['assignedRouteName'] = _selectedRouteName ?? "";
                                   mobileNumber: _formData['mobileNumber']!,
                                   address: _formData['address']!,
                                   assignedRouteId:
-                                      _formData['assignedRouteId']!, // ✅ proper ID
+                                      _formData['assignedRouteId']!,
                                   assignedRouteName:
-                                      _formData['assignedRouteName']!, // ✅ readable name
+                                      _formData['assignedRouteName']!,
                                   paymentStatus: _formData['paymentStatus']!,
-                                  // destination fields injected above
                                   destinationLatitude:
                                       _formData['destinationLatitude']!,
                                   destinationLongitude:
@@ -291,6 +371,193 @@ _formData['assignedRouteName'] = _selectedRouteName ?? "";
           ),
         ),
       ),
+    );
+  }
+
+  // NEW: Destination Map Selection Section
+  Widget _buildDestinationMapSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              "Destination Location",
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+                color: Color(0xff333333),
+              ),
+            ),
+            Spacer(),
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _isMapExpanded = !_isMapExpanded;
+                });
+              },
+              icon: Icon(
+                _isMapExpanded ? Icons.expand_less : Icons.expand_more,
+                color: Color(0xff7B61A1),
+              ),
+              label: Text(
+                _isMapExpanded ? "Hide Map" : "Show Map",
+                style: TextStyle(color: Color(0xff7B61A1)),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8.h),
+
+        // Coordinate Input Fields
+        Row(
+          children: [
+            Expanded(
+              child: buildLatLngField(
+                "Latitude",
+                _latController,
+                "destinationLatitude",
+                onChanged: (value) {
+                  final lat = double.tryParse(value);
+                  if (lat != null && lat >= -90 && lat <= 90) {
+                    final lng = double.tryParse(_lngController.text);
+                    if (lng != null && lng >= -180 && lng <= 180) {
+                      setState(() {
+                        _selectedLocation = LatLng(lat, lng);
+                        _updateMarker();
+                      });
+                      if (_mapController != null) {
+                        _mapController!.animateCamera(
+                          CameraUpdate.newLatLng(_selectedLocation),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: buildLatLngField(
+                "Longitude",
+                _lngController,
+                "destinationLongitude",
+                onChanged: (value) {
+                  final lng = double.tryParse(value);
+                  if (lng != null && lng >= -180 && lng <= 180) {
+                    final lat = double.tryParse(_latController.text);
+                    if (lat != null && lat >= -90 && lat <= 90) {
+                      setState(() {
+                        _selectedLocation = LatLng(lat, lng);
+                        _updateMarker();
+                      });
+                      if (_mapController != null) {
+                        _mapController!.animateCamera(
+                          CameraUpdate.newLatLng(_selectedLocation),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+
+        if (_isMapExpanded) ...[
+          SizedBox(height: 16.h),
+          Container(
+            height: 300.h,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12.r),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (ScrollNotification notification) {
+                  // Consume scroll notifications to prevent parent ListView interference
+                  return true;
+                },
+                child: GestureDetector(
+                  // Prevent parent gestures from interfering
+                  onPanDown: (_) {},
+                  onPanUpdate: (_) {},
+                  onPanEnd: (_) {},
+
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: _selectedLocation,
+                      zoom: 15.0,
+                    ),
+                    onMapCreated: (GoogleMapController controller) {
+                      _mapController = controller;
+                      _updateMarker();
+                    },
+                    onTap: (LatLng position) {
+                      setState(() {
+                        _selectedLocation = position;
+                        _updateLocationFields();
+                        _updateMarker();
+                      });
+                    },
+
+                    markers: _markers,
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: true,
+                    compassEnabled: true,
+                    mapToolbarEnabled: false,
+                    // Proper gesture recognizers for map interaction
+                    gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                      Factory<OneSequenceGestureRecognizer>(
+                        () => EagerGestureRecognizer(),
+                      ),
+                    },
+                    zoomGesturesEnabled: true,
+                    scrollGesturesEnabled: true,
+                    tiltGesturesEnabled: true,
+                    rotateGesturesEnabled: true,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 16.w, color: Colors.grey),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  "Tap on the map to select destination or drag the pin marker",
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _getCurrentLocation,
+                  icon: Icon(Icons.my_location, size: 16.w),
+                  label: Text("Use Current Location"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xff7B61A1).withOpacity(0.1),
+                    foregroundColor: Color(0xff7B61A1),
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 
@@ -363,7 +630,7 @@ _formData['assignedRouteName'] = _selectedRouteName ?? "";
                 style: TextStyle(color: Colors.grey),
               );
 
-           return DropdownButtonFormField<String>(
+            return DropdownButtonFormField<String>(
               isExpanded: true,
               value: _selectedDriverId,
               decoration: InputDecoration(
@@ -402,11 +669,11 @@ _formData['assignedRouteName'] = _selectedRouteName ?? "";
                           : null,
               onChanged: (id) {
                 setState(() {
-                  _selectedDriverId  = id!;
+                  _selectedDriverId = id!;
                   // Also capture the display name for later saving to the student document
                   final doc = docs.firstWhere((doc) => doc.id == id);
                   final data = doc.data() as Map<String, dynamic>;
-                  _selectedDriverName  = data['name'] ?? id;
+                  _selectedDriverName = data['name'] ?? id;
                 });
               },
             );
@@ -451,45 +718,51 @@ _formData['assignedRouteName'] = _selectedRouteName ?? "";
                 style: TextStyle(color: Colors.grey),
               );
 
-           return DropdownButtonFormField<String>(
-  isExpanded: true,
-  value: _selectedRouteId, // must match one of the `DropdownMenuItem.value`s
-  decoration: InputDecoration(
-    prefixIcon: Icon(
-      Icons.directions_bus_outlined,
-      color: Color(0xff7B61A1),
-    ),
-    hintText: "Select Assigned Route",
-    filled: true,
-    fillColor: Color(0xffF8F9FA),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12.r),
-      borderSide: BorderSide.none,
-    ),
-  ),
-  items: docs.map((doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    final routeName = data['routeName'] ?? doc.id;
-    return DropdownMenuItem<String>(
-      value: doc.id, // ✅ always unique
-      child: Text(
-        routeName,
-        style: TextStyle(fontSize: 14.sp, color: Color(0xff333333)),
-      ),
-    );
-  }).toList(),
-  validator: (value) =>
-      value == null || value.isEmpty ? 'Assigned Route is required' : null,
-  onChanged: (id) {
-    setState(() {
-      _selectedRouteId = id; // ✅ keep doc.id
-      final doc = docs.firstWhere((doc) => doc.id == id);
-      final data = doc.data() as Map<String, dynamic>;
-      _selectedRouteName = data['routeName'] ?? id;
-    });
-  },
-);
-
+            return DropdownButtonFormField<String>(
+              isExpanded: true,
+              value: _selectedRouteId,
+              decoration: InputDecoration(
+                prefixIcon: Icon(
+                  Icons.directions_bus_outlined,
+                  color: Color(0xff7B61A1),
+                ),
+                hintText: "Select Assigned Route",
+                filled: true,
+                fillColor: Color(0xffF8F9FA),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              items:
+                  docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final routeName = data['routeName'] ?? doc.id;
+                    return DropdownMenuItem<String>(
+                      value: doc.id,
+                      child: Text(
+                        routeName,
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: Color(0xff333333),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+              validator:
+                  (value) =>
+                      value == null || value.isEmpty
+                          ? 'Assigned Route is required'
+                          : null,
+              onChanged: (id) {
+                setState(() {
+                  _selectedRouteId = id;
+                  final doc = docs.firstWhere((doc) => doc.id == id);
+                  final data = doc.data() as Map<String, dynamic>;
+                  _selectedRouteName = data['routeName'] ?? id;
+                });
+              },
+            );
           },
         ),
       ],
@@ -500,8 +773,9 @@ _formData['assignedRouteName'] = _selectedRouteName ?? "";
   Widget buildLatLngField(
     String label,
     TextEditingController controller,
-    String key,
-  ) {
+    String key, {
+    Function(String)? onChanged,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -541,6 +815,7 @@ _formData['assignedRouteName'] = _selectedRouteName ?? "";
               return 'Longitude must be between -180 and 180';
             return null;
           },
+          onChanged: onChanged,
         ),
       ],
     );

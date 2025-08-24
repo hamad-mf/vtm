@@ -102,9 +102,10 @@ class _AddParentScreenState extends State<AddParentScreen> {
                                 SnackBar(content: Text(provider.error!), backgroundColor: Colors.red),
                               );
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Parent added successfully"), backgroundColor: Colors.green),
-                              );
+                              if (!mounted) return;
+ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(content: Text("parent added successfully")),
+);
                               Navigator.pop(context);
                             }
                           }
