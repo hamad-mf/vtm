@@ -14,15 +14,185 @@ class StudentController with ChangeNotifier {
   }
 
   Future<void> deleteStudent(String studentId) async {
-    await _firestore.collection('students').doc(studentId).delete();
-    await _firestore.collection('roles').doc(studentId).delete();
+    try {
+      await _firestore.collection('students').doc(studentId).delete();
+      await _firestore.collection('roles').doc(studentId).delete();
+    } catch (e) {
+      print('Error deleting student: $e');
+      rethrow;
+    }
   }
 
   Future<void> updateStudent(
     String studentId,
     Map<String, dynamic> updatedData,
   ) async {
-    await _firestore.collection('students').doc(studentId).update(updatedData);
+    try {
+      isLoading = true;
+      notifyListeners();
+
+      await _firestore.collection('students').doc(studentId).update(updatedData);
+      
+      // Also update the roles collection if name was updated
+      if (updatedData.containsKey('name')) {
+        await _firestore.collection('roles').doc(studentId).update({
+          'name': updatedData['name'],
+        });
+      }
+      
+      isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      isLoading = false;
+      error = e.toString();
+      notifyListeners();
+      print('Error updating student: $e');
+      rethrow;
+    }
+  }
+
+  /// Enhanced update method with validation and better error handling
+  Future<bool> updateStudentDetails({
+    required BuildContext context,
+    required String studentId,
+    required String name,
+    required String email,
+    required String registrationNumber,
+    required String mobileNumber,
+    required String address,
+    required String assignedRouteId,
+    required String assignedRouteName,
+    required String assignedDriverId,
+    required String assignedDriverName,
+    required String paymentStatus,
+    required double destinationLatitude,
+    required double destinationLongitude,
+    required DateTime feeExpiryDate,
+  }) async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      // Validate input data
+      if (name.trim().isEmpty ||
+          email.trim().isEmpty ||
+          registrationNumber.trim().isEmpty ||
+          mobileNumber.trim().isEmpty ||
+          address.trim().isEmpty) {
+        throw Exception('All required fields must be filled');
+      }
+
+      // Validate coordinates
+      if (destinationLatitude < -90 || destinationLatitude > 90) {
+        throw Exception('Invalid latitude value');
+      }
+      if (destinationLongitude < -180 || destinationLongitude > 180) {
+        throw Exception('Invalid longitude value');
+      }
+
+      // Prepare update data
+      Map<String, dynamic> updateData = {
+        'name': name.trim(),
+        'email': email.trim().toLowerCase(),
+        'registrationNumber': registrationNumber.trim(),
+        'mobileNumber': mobileNumber.trim(),
+        'address': address.trim(),
+        'assignedRoute': assignedRouteName.trim(),
+        'assignedRouteId': assignedRouteId,
+        'assignedDriverId': assignedDriverId,
+        'assignedDriverName': assignedDriverName.trim(),
+        'paymentStatus': paymentStatus,
+        'destinationLatitude': destinationLatitude,
+        'destinationLongitude': destinationLongitude,
+        'feeExpiryDate': Timestamp.fromDate(feeExpiryDate),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      // Update student document
+      await _firestore.collection('students').doc(studentId).update(updateData);
+
+      // Update roles collection
+      await _firestore.collection('roles').doc(studentId).update({
+        'name': name.trim(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Student updated successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      return true;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error updating student: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Get single student details
+  Future<Map<String, dynamic>?> getStudentById(String studentId) async {
+    try {
+      DocumentSnapshot doc = await _firestore
+          .collection('students')
+          .doc(studentId)
+          .get();
+      
+      if (doc.exists) {
+        return doc.data() as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('Error getting student: $e');
+      return null;
+    }
+  }
+
+  /// Check if email is already in use by another student
+  Future<bool> isEmailAvailable(String email, {String? excludeStudentId}) async {
+    try {
+      QuerySnapshot query = await _firestore
+          .collection('students')
+          .where('email', isEqualTo: email.trim().toLowerCase())
+          .get();
+      
+      if (excludeStudentId != null) {
+        // When updating, exclude the current student's email
+        return query.docs.every((doc) => doc.id == excludeStudentId);
+      }
+      
+      return query.docs.isEmpty;
+    } catch (e) {
+      print('Error checking email availability: $e');
+      return false;
+    }
+  }
+
+  /// Check if registration number is already in use
+  Future<bool> isRegistrationNumberAvailable(String regNum, {String? excludeStudentId}) async {
+    try {
+      QuerySnapshot query = await _firestore
+          .collection('students')
+          .where('registrationNumber', isEqualTo: regNum.trim())
+          .get();
+      
+      if (excludeStudentId != null) {
+        return query.docs.every((doc) => doc.id == excludeStudentId);
+      }
+      
+      return query.docs.isEmpty;
+    } catch (e) {
+      print('Error checking registration number availability: $e');
+      return false;
+    }
   }
 
   Future<void> addStudent({
@@ -74,9 +244,10 @@ class StudentController with ChangeNotifier {
 
       // Add user role
       await _firestore.collection('roles').doc(uid).set({
-        'name':name,
-        'fcmToken':null,
-        'role': 'student','userId':uid,
+        'name': name,
+        'fcmToken': null,
+        'role': 'student',
+        'userId': uid,
         'createdAt': FieldValue.serverTimestamp(),
       });
 

@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/driver_controller.dart';
 import 'package:vignan_transportation_management/View/Admin%20module/add_driver_screen.dart';
-
+import 'package:vignan_transportation_management/View/Admin%20module/edit_driver_screen.dart'; // Import the edit screen
 
 class DriverListScreen extends StatelessWidget {
   const DriverListScreen({super.key});
@@ -332,7 +332,18 @@ class DriverListScreen extends StatelessWidget {
                         ),
                       ],
                   onSelected: (value) {
-                    if (value == 'delete') {
+                    if (value == 'edit') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => EditDriverScreen(
+                                driverId: driverId,
+                                driverData: data,
+                              ),
+                        ),
+                      );
+                    } else if (value == 'delete') {
                       _showDeleteConfirmation(
                         context,
                         driverId,
@@ -340,7 +351,6 @@ class DriverListScreen extends StatelessWidget {
                         provider,
                       );
                     }
-                    // Add edit functionality here
                   },
                 ),
               ],
@@ -414,6 +424,24 @@ class DriverListScreen extends StatelessWidget {
                     "Email",
                     data['email'] ?? 'N/A',
                   ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: 8.h),
+
+            // PIN Code display
+            Row(
+              children: [
+                Expanded(
+                  child: _buildDetailItem(
+                    Icons.security,
+                    "PIN Code",
+                    data['pincode'] ?? 'N/A',
+                  ),
+                ),
+                Expanded(
+                  child: Container(), // Empty container for spacing
                 ),
               ],
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vignan_transportation_management/Controllers/Admin%20Controllers/student_controller.dart';
+import 'package:vignan_transportation_management/View/Admin%20module/edit_student_screen.dart';
 import 'package:vignan_transportation_management/View/Admin%20module/edit_student_sheet.dart';
 
 class StudentDetailScreen extends StatelessWidget {
@@ -40,19 +41,15 @@ class StudentDetailScreen extends StatelessWidget {
                   children: [
                     ElevatedButton.icon(
                       onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(20),
-                            ),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => EditStudentScreen(
+                                  studentId: studentId,
+                                  studentData: studentData,
+                                ),
                           ),
-                          builder:
-                              (_) => EditStudentSheet(
-                                studentId: studentId,
-                                studentData: studentData,
-                              ),
                         );
                       },
                       icon: const Icon(Icons.edit),
